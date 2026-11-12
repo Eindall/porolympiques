@@ -1,0 +1,23 @@
+/**
+ * Exécuté par Jest AVANT chaque fichier de test, donc avant l'import de AppModule.
+ *
+ * Indispensable : `ConfigModule.forRoot()` lit les variables d'environnement au moment où AppModule est importé.
+ * Les définir plus tard (dans un `beforeAll`) serait trop tard : l'application se connecterait à la base du `.env`,
+ * c'est-à-dire la base de dev.
+ */
+const url = process.env['TEST_DATABASE_URL'];
+
+if (url) {
+  const database = new URL(url).pathname.slice(1);
+  if (!/test/i.test(database)) {
+    throw new Error(
+      `TEST_DATABASE_URL pointe vers « ${database} » : le nom d'une base de test doit contenir « test » ` +
+        `(les tests d'intégration vident les tables). Ex. postgres://…/porolympiques_test`,
+    );
+  }
+  Object.assign(process.env, {
+    DATABASE_URL: url,
+    JWT_SECRET: 'test-secret-test-secret-test-secret-test',
+    APP_URL: 'http://localhost:4200',
+  });
+}
