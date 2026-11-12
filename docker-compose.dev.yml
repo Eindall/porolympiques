@@ -1,0 +1,32 @@
+# Développement : seulement PostgreSQL (et Adminer), en local. L'API et le front tournent avec
+# `npm run dev:api` et `npm run dev:web`.
+#
+#   npm run db:up
+#
+# Ports décalés (5433, 8082) pour cohabiter avec la base de dev de kanadrill.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: porolympiques
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: porolympiques
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      - porolympiques-dev-db:/var/lib/postgresql/data
+      # Crée aussi la base des tests d'intégration au premier démarrage.
+      - ./scripts/dev-db-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - '127.0.0.1:8082:8080'
+
+volumes:
+  porolympiques-dev-db:
