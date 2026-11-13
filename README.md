@@ -24,6 +24,18 @@ Les dépendances autorisées entre projets sont vérifiées par le lint (`@nx/en
 - Pseudo : surnom sur le serveur, sinon nom d'affichage, sinon nom d'utilisateur. Admins : `DISCORD_ADMIN_IDS`.
 - Session : JWT dans un cookie httpOnly, adossé à une ligne de `auth_sessions` (révocable). Elle expire après 14 jours sans visite, 60 jours au plus. Chaque requête vérifie aussi que le joueur est encore actif.
 
+## Classement
+
+Le calcul vit dans `libs/domain/src/lib/standings` (fonction pure `computeStandings`, couverte par les tests). Rien n'est stocké : il repart des places à chaque appel.
+
+- Seuls les events terminés comptent. Un side ne compte que validé et avec au moins 4 classés, sinon il est ignoré entièrement.
+- Points : `barème[place] × coefficient`. Le barème de la saison est celui d'un main ; sa dernière place vaut pour toutes les suivantes.
+- Score : les `main_quota` meilleurs mains et les `side_quota` meilleurs sides. Les autres résultats sont écartés.
+- Départage : les résultats écartés, du meilleur au moins bon, puis le nombre de victoires (mains et sides comptés). Au-delà, la place est partagée (1, 2, 2, 4).
+- Apparaît tout joueur avec un résultat dans un event terminé de la saison, même à zéro point.
+
+Routes : `GET /api/seasons/current/standings` (saison en cours) et `GET /api/seasons/:id/standings`.
+
 ## Développement
 
 Prérequis : Node.js 22 ou plus, npm, Docker avec Compose.
@@ -54,6 +66,14 @@ npm run migration:generate -- apps/api/src/app/database/migrations/NomDeLaMigrat
 npm run migration:run         # appliquer à la main
 npm run migration:revert      # annuler la dernière
 ```
+
+Saison fictive (`libs/domain/src/lib/standings/fictional-season.ts`, avec son classement attendu) :
+
+```bash
+npm run db:seed               # charge ou remplace la saison fictive dans la base du .env (refusé en production)
+```
+
+Elle devient la saison en cours, sauf si une autre l'est déjà. Ses joueurs (identifiants Discord en `9999…`) ne sont pas sur le serveur : la synchro du bot les désactive, ils restent affichés au classement.
 
 ### Tests et lint
 

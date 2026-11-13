@@ -41,6 +41,7 @@ Ces deux fichiers sont des exports d'un doc tenu ailleurs. Ne pas les modifier :
 ## Commandes
 
 - `npm install`, puis `npm run db:up` : PostgreSQL de dev sur le port 5433 (Adminer sur 8082). Config locale dans `.env` (voir `.env.example`, section développement).
+- `npm run db:seed` : saison fictive dans la base de dev (classement attendu dans `libs/domain/src/lib/standings/fictional-season.ts`).
 - `npm run dev:api` et `npm run dev:web` : API (port 3000) et front (port 4200, proxy `/api`).
 - `npm run lint` et `npm run test`. Tests d'intégration : `TEST_DATABASE_URL=postgres://porolympiques:devpass@127.0.0.1:5433/porolympiques_test npx nx test api`. Le nom de la base doit contenir « test ».
 - `npm run migration:generate -- apps/api/src/app/database/migrations/Nom`, puis ajouter la migration à `MIGRATIONS` (`apps/api/src/app/database/migrations/index.ts`) et toute nouvelle entité à `ENTITIES` (`libs/database/src/lib/entities.ts`).

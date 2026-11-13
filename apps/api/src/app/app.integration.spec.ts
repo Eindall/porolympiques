@@ -6,7 +6,15 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { DiscordStrategy } from '@porolympiques/api';
-import { GUILD_DIRECTORY, type GuildDirectory, type GuildMember, PlayersService } from '@porolympiques/domain';
+import { seedFictionalSeason } from '@porolympiques/database';
+import {
+  FICTIONAL_SEASON,
+  GUILD_DIRECTORY,
+  type GuildDirectory,
+  type GuildMember,
+  PlayersService,
+} from '@porolympiques/domain';
+import type { SeasonStandingsDto } from '@porolympiques/shared';
 import { DataSource } from 'typeorm';
 import { assertTestDatabase } from './testing/assert-test-database';
 
@@ -78,7 +86,7 @@ describeWithDb('Application (intégration)', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.query('TRUNCATE players CASCADE');
+    await dataSource.query('TRUNCATE players, seasons, games, catalog_search_cache CASCADE');
     directory.members = new Map([
       [ALICE_ID, guildMember(ALICE_ID, { globalName: 'Alice', nickname: 'Ali la Menace' })],
       [ADMIN_ID, guildMember(ADMIN_ID, { globalName: 'Tong' })],
@@ -224,5 +232,62 @@ describeWithDb('Application (intégration)', () => {
     expect(logout.status).toBe(204);
     expect(logout.headers.getSetCookie().some((cookie) => cookie.startsWith('poro_session=;'))).toBe(true);
     expect((await me(session)).status).toBe(401);
+  });
+
+  describe('Classement', () => {
+    const standings = (path: string, session?: string) =>
+      fetch(`${base}/api/seasons/${path}/standings`, { headers: session ? { cookie: session } : {} });
+
+    it('est derrière le mur de connexion', async () => {
+      await seedFictionalSeason(dataSource);
+
+      expect((await standings('current')).status).toBe(401);
+    });
+
+    it('renvoie le classement attendu pour la saison fictive en cours', async () => {
+      const { seasonId, playerIds } = await seedFictionalSeason(dataSource);
+      const { session } = await login();
+
+      const response = await standings('current', session);
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as SeasonStandingsDto;
+      expect(body.season).toMatchObject({ id: seasonId, name: FICTIONAL_SEASON.name, status: 'active', mainQuota: 3, sideQuota: 2 });
+      expect(body.entries.map(({ rank, player, score, wins }) => ({ rank, player: player.id, score, wins }))).toEqual(
+        FICTIONAL_SEASON.expected.map((entry) => ({ ...entry, player: playerIds[entry.player] })),
+      );
+      // Détail d'une ligne : résultats comptés, écartés et non classés, du plus ancien au plus récent.
+      const alice = body.entries[0];
+      expect(alice.player).toMatchObject({ pseudo: 'Alice', active: true });
+      expect(alice.results.map(({ label, type, place, points, status }) => [label, type, place, points, status])).toEqual([
+        ['Trackmania — Contre-la-montre', 'main', 1, 24, 'counted'],
+        ['Wikipédia — Speedrun de liens', 'side', 2, 9, 'counted'],
+        ['Tetris 99 — Meilleur score', 'main', 2, 18, 'counted'],
+        ['Overcooked 2 — Relais en cuisine', 'main', 3, 14, 'counted'],
+        ['Celeste — Speedrun any%', 'main', 3, 14, 'discarded'],
+      ]);
+      expect(body.entries.find((entry) => entry.player.pseudo === 'Inès')?.results).toEqual([
+        expect.objectContaining({ place: null, points: 0, status: 'unranked' }),
+      ]);
+    });
+
+    it('renvoie le classement d’une saison par son identifiant, et le recalcule à chaque appel', async () => {
+      const { seasonId, playerIds } = await seedFictionalSeason(dataSource);
+      const { session } = await login();
+      // Changer une place change le classement, sans rien d'autre à mettre à jour.
+      await dataSource.query('UPDATE results SET place = 1 WHERE player_id = $1 AND place = 2', [playerIds['bruno']]);
+
+      const body = (await (await standings(seasonId, session)).json()) as SeasonStandingsDto;
+
+      expect(body.entries[0]).toMatchObject({ rank: 1, player: { pseudo: 'Bruno' } });
+    });
+
+    it('répond 404 sans saison en cours ou pour une saison inconnue, et 400 pour un identifiant mal formé', async () => {
+      const { session } = await login();
+
+      expect((await standings('current', session)).status).toBe(404);
+      expect((await standings('00000000-0000-4000-8000-000000000000', session)).status).toBe(404);
+      expect((await standings('pas-un-uuid', session)).status).toBe(400);
+    });
   });
 });
