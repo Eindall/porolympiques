@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { NewPlayer, Player, PlayerChanges, PlayerRepository } from '@porolympiques/domain';
 import { Repository } from 'typeorm';
+import { isUuid } from '../uuid';
 import { PlayerEntity } from './player.entity';
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function toPlayer(row: PlayerEntity): Player {
   return {
@@ -22,7 +21,7 @@ export class TypeOrmPlayerRepository implements PlayerRepository {
   constructor(@InjectRepository(PlayerEntity) private readonly rows: Repository<PlayerEntity>) {}
 
   async findById(id: string): Promise<Player | null> {
-    if (!UUID.test(id)) return null;
+    if (!isUuid(id)) return null;
     const row = await this.rows.findOneBy({ id });
     return row ? toPlayer(row) : null;
   }

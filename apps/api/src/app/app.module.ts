@@ -12,6 +12,7 @@ import { DatabaseModule, ENTITIES } from '@porolympiques/database';
 import { validateEnv } from './config/env';
 import { MIGRATIONS } from './database/migrations';
 import { PlayersModule } from './players.module';
+import { StandingsModule } from './standings.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PlayersModule } from './players.module';
     }),
     DatabaseModule,
     PlayersModule,
+    StandingsModule,
     BotModule,
     ApiModule,
   ],

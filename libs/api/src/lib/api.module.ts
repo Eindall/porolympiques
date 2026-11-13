@@ -13,6 +13,7 @@ import { SessionGuard } from './auth/session.guard';
 import { SessionService } from './auth/session.service';
 import { HealthController } from './health/health.controller';
 import { MeController } from './players/me.controller';
+import { StandingsController } from './seasons/standings.controller';
 
 /**
  * Routes HTTP de l'API. Les contrôleurs restent fins : les règles métier vivent dans `@porolympiques/domain`.
@@ -29,7 +30,7 @@ import { MeController } from './players/me.controller';
       }),
     }),
   ],
-  controllers: [HealthController, AuthController, MeController],
+  controllers: [HealthController, AuthController, MeController, StandingsController],
   providers: [
     SessionService,
     SessionCleanupService,

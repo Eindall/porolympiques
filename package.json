@@ -15,6 +15,7 @@
     "lint": "nx run-many -t lint",
     "db:up": "docker compose -f docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:seed": "cross-env TS_NODE_PROJECT=apps/api/tsconfig.app.json TS_NODE_TRANSPILE_ONLY=true node -r ts-node/register -r ./tools/register-paths.cjs apps/api/src/app/database/seed.ts",
     "migration:generate": "cross-env TS_NODE_PROJECT=apps/api/tsconfig.app.json TS_NODE_TRANSPILE_ONLY=true node -r ts-node/register -r ./tools/register-paths.cjs node_modules/typeorm/cli.js migration:generate -d apps/api/src/app/database/data-source.ts",
     "migration:run": "cross-env TS_NODE_PROJECT=apps/api/tsconfig.app.json TS_NODE_TRANSPILE_ONLY=true node -r ts-node/register -r ./tools/register-paths.cjs node_modules/typeorm/cli.js migration:run -d apps/api/src/app/database/data-source.ts",
     "migration:revert": "cross-env TS_NODE_PROJECT=apps/api/tsconfig.app.json TS_NODE_TRANSPILE_ONLY=true node -r ts-node/register -r ./tools/register-paths.cjs node_modules/typeorm/cli.js migration:revert -d apps/api/src/app/database/data-source.ts"
