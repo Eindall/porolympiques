@@ -10,16 +10,33 @@
     "importHelpers": true,
     "target": "es2022",
     "module": "esnext",
-    "lib": ["es2022", "dom"],
+    "lib": [
+      "es2022",
+      "dom"
+    ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "strict": true,
     "paths": {
-      "@porolympiques/api": ["./libs/api/src/index.ts"],
-      "@porolympiques/bot": ["./libs/bot/src/index.ts"],
-      "@porolympiques/domain": ["./libs/domain/src/index.ts"],
-      "@porolympiques/shared": ["./libs/shared/src/index.ts"]
+      "@porolympiques/api": [
+        "./libs/api/src/index.ts"
+      ],
+      "@porolympiques/bot": [
+        "./libs/bot/src/index.ts"
+      ],
+      "@porolympiques/database": [
+        "./libs/database/src/index.ts"
+      ],
+      "@porolympiques/domain": [
+        "./libs/domain/src/index.ts"
+      ],
+      "@porolympiques/shared": [
+        "./libs/shared/src/index.ts"
+      ]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
 }

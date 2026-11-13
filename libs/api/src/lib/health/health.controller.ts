@@ -2,13 +2,15 @@ import { Controller, Get } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { HealthStatus } from '@porolympiques/shared';
 import { DataSource } from 'typeorm';
+import { Public } from '../auth/public.decorator';
 
 /**
- * Seule route publique de l'API, par exception à la règle « tout derrière l'authentification » :
+ * Route publique, par exception à la règle « tout derrière l'authentification » (avec le flux de connexion) :
  * le healthcheck Docker et le script de déploiement l'appellent sans session.
  * Elle ne renvoie rien d'autre que l'état, et vérifie que la base répond.
  */
 @Controller('health')
+@Public()
 @SkipThrottle()
 export class HealthController {
   constructor(private readonly dataSource: DataSource) {}

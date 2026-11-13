@@ -19,5 +19,11 @@ if (url) {
     DATABASE_URL: url,
     JWT_SECRET: 'test-secret-test-secret-test-secret-test',
     APP_URL: 'http://localhost:4200',
+    DISCORD_CLIENT_ID: 'test-client-id',
+    DISCORD_CLIENT_SECRET: 'test-client-secret',
+    DISCORD_REDIRECT_URI: 'http://localhost:4200/api/auth/discord/callback',
+    DISCORD_BOT_TOKEN: 'test-bot-token',
+    DISCORD_GUILD_ID: '300000000000000000',
+    DISCORD_ADMIN_IDS: '100000000000000009',
   });
 }

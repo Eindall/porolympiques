@@ -7,13 +7,22 @@ Site web et bot Discord pour un circuit de tournois de jeux vidéo entre potes. 
 ```
 apps/api       Démarrage du backend NestJS : config, base, migrations
 apps/web       Front Angular
-libs/domain    Règles métier, sans Discord ni IGDB          (@porolympiques/domain)
-libs/api       Contrôleurs HTTP de l'API                    (@porolympiques/api)
-libs/bot       Bot Discord, chargé dans le même backend     (@porolympiques/bot)
-libs/shared    Types partagés entre le front et le backend  (@porolympiques/shared)
+libs/domain    Règles métier et ports, sans Discord ni IGDB      (@porolympiques/domain)
+libs/database  Entités et repositories TypeORM (adapters)        (@porolympiques/database)
+libs/api       Contrôleurs HTTP, auth et sessions                (@porolympiques/api, projet Nx api-lib)
+libs/bot       Bot Discord, chargé dans le même backend          (@porolympiques/bot)
+libs/shared    Types partagés entre le front et le backend       (@porolympiques/shared)
 ```
 
-Les dépendances autorisées entre projets sont vérifiées par le lint (`@nx/enforce-module-boundaries`, dans `eslint.config.mjs`) : le front ne voit que `shared`, l'API et le bot passent par `domain`, et `domain` n'importe ni Discord ni Angular.
+Les dépendances autorisées entre projets sont vérifiées par le lint (`@nx/enforce-module-boundaries`, dans `eslint.config.mjs`) : le front ne voit que `shared`, l'API et le bot ne voient que `domain`, `database` implémente les ports du domaine, et seule l'app (`apps/api`) câble le tout. `domain` n'importe ni Discord ni Angular.
+
+## Authentification et joueurs
+
+- Connexion par OAuth Discord (scope `identify`), obligatoire partout : seuls `/login`, `/api/health` et le flux OAuth sont publics.
+- Au retour de Discord, le bot vérifie que la personne est sur le serveur. Sinon : refus (`/login?error=not_member`).
+- Le bot synchronise les membres dans `players` au démarrage puis toutes les 6 h, et suit les arrivées, départs et changements de surnom. Un départ désactive le joueur et révoque ses sessions ; un retour le réactive.
+- Pseudo : surnom sur le serveur, sinon nom d'affichage, sinon nom d'utilisateur. Admins : `DISCORD_ADMIN_IDS`.
+- Session : JWT dans un cookie httpOnly, adossé à une ligne de `auth_sessions` (révocable). Elle expire après 14 jours sans visite, 60 jours au plus. Chaque requête vérifie aussi que le joueur est encore actif.
 
 ## Développement
 
@@ -22,12 +31,15 @@ Prérequis : Node.js 22 ou plus, npm, Docker avec Compose.
 ```bash
 npm install
 npm run db:up                 # PostgreSQL (port 5433) et Adminer (http://localhost:8082)
-cp .env.example .env          # puis garde seulement la section « Développement local », décommentée
+cp .env.example .env          # puis garde seulement la section « Développement local », décommentée,
+                              # avec les identifiants Discord notés en phase 0
 npm run dev:api               # API sur http://localhost:3000/api
 npm run dev:web               # front sur http://localhost:4200 (proxy /api vers :3000)
 ```
 
-Ouvre <http://localhost:4200> plutôt que le port 3000 : le cookie de session et le retour OAuth passeront par le proxy du front.
+Ouvre <http://localhost:4200> plutôt que le port 3000 : le cookie de session et le retour OAuth passent par le proxy du front. L'URL `http://localhost:4200/api/auth/discord/callback` doit être déclarée dans les redirects OAuth2 de l'application Discord.
+
+En dev, le bot se connecte avec le même jeton qu'en prod : les deux reçoivent les événements du serveur, chacun met à jour sa propre base.
 
 ### Base de données
 
@@ -37,7 +49,7 @@ Les migrations s'appliquent au démarrage de l'API. `synchronize` n'est jamais a
 # Après avoir modifié une entité :
 npm run migration:generate -- apps/api/src/app/database/migrations/NomDeLaMigration
 # Puis ajoute la classe générée à MIGRATIONS (apps/api/src/app/database/migrations/index.ts)
-# et toute nouvelle entité à ENTITIES (apps/api/src/app/database/entities.ts).
+# et toute nouvelle entité à ENTITIES (libs/database/src/lib/entities.ts).
 
 npm run migration:run         # appliquer à la main
 npm run migration:revert      # annuler la dernière
@@ -64,7 +76,7 @@ docker compose -f docker-compose.dev.yml exec db createdb -U porolympiques porol
 
 Trois conteneurs : `db` (PostgreSQL dédié, volume persistant), `api` (NestJS et bot) et `web` (nginx, qui sert le front et renvoie `/api` vers l'API). Seul `web` rejoint le réseau Docker de Caddy, sous l'alias `porolympiques-web`.
 
-La route de santé `GET /api/health` est la seule route publique de l'API. Elle vérifie aussi la base, et sert au healthcheck Docker comme au script de déploiement.
+La route de santé `GET /api/health` est publique (avec le flux de connexion). Elle vérifie aussi la base, et sert au healthcheck Docker comme au script de déploiement. Le bot démarre avec l'API ; s'il n'arrive pas à se connecter à Discord, l'API tourne quand même, mais les connexions au site échouent (`/login?error=discord`).
 
 ### Déploiement continu
 

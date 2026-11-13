@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
-import { ENTITIES } from './entities';
+import { ENTITIES } from '@porolympiques/database';
 import { MIGRATIONS } from './migrations';
 
 /**

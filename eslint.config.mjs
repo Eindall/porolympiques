@@ -13,7 +13,8 @@ export default [
       // Frontières entre projets (voir les `tags` de chaque project.json) :
       // - le front ne voit que les types partagés ;
       // - le domaine ne dépend ni de Discord, ni du front, ni de l'API ;
-      // - l'API et le bot ne se connaissent pas, ils passent par le domaine.
+      // - l'API et le bot ne se connaissent pas, ils passent par le domaine ;
+      // - la persistance (`database`) implémente les ports du domaine ; seule l'app la câble.
       '@nx/enforce-module-boundaries': [
         'error',
         {
@@ -23,8 +24,9 @@ export default [
             { sourceTag: 'scope:web', onlyDependOnLibsWithTags: ['scope:shared'] },
             {
               sourceTag: 'scope:api-app',
-              onlyDependOnLibsWithTags: ['scope:api', 'scope:bot', 'scope:domain', 'scope:shared'],
+              onlyDependOnLibsWithTags: ['scope:api', 'scope:bot', 'scope:database', 'scope:domain', 'scope:shared'],
             },
+            { sourceTag: 'scope:database', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
             { sourceTag: 'scope:api', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
             { sourceTag: 'scope:bot', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
             {
