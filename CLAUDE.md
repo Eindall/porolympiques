@@ -36,18 +36,20 @@ Ces deux fichiers sont des exports d'un doc tenu ailleurs. Ne pas les modifier :
 - Configuration par variables d'environnement uniquement, avec un `.env.example` tenu à jour. Aucun identifiant ni secret dans le code.
 - Schéma géré par migrations TypeORM, sans `synchronize` en production.
 - Dates stockées en UTC, affichées en heure de Paris.
-- Toutes les routes de l'API sont derrière l'authentification, et vérifient que le joueur est encore actif. Seule exception : `GET /api/health`, pour le healthcheck et le déploiement.
+- Toutes les routes de l'API sont derrière l'authentification, et vérifient que le joueur est encore actif. Exceptions : `GET /api/health` (healthcheck et déploiement) et le flux de connexion (`/api/auth/*`).
 
 ## Commandes
 
 - `npm install`, puis `npm run db:up` : PostgreSQL de dev sur le port 5433 (Adminer sur 8082). Config locale dans `.env` (voir `.env.example`, section développement).
 - `npm run dev:api` et `npm run dev:web` : API (port 3000) et front (port 4200, proxy `/api`).
 - `npm run lint` et `npm run test`. Tests d'intégration : `TEST_DATABASE_URL=postgres://porolympiques:devpass@127.0.0.1:5433/porolympiques_test npx nx test api`. Le nom de la base doit contenir « test ».
-- `npm run migration:generate -- apps/api/src/app/database/migrations/Nom`, puis ajouter la migration à `MIGRATIONS` (`database/migrations/index.ts`) et toute nouvelle entité à `ENTITIES` (`database/entities.ts`).
+- `npm run migration:generate -- apps/api/src/app/database/migrations/Nom`, puis ajouter la migration à `MIGRATIONS` (`apps/api/src/app/database/migrations/index.ts`) et toute nouvelle entité à `ENTITIES` (`libs/database/src/lib/entities.ts`).
 - Production : `docker compose up -d --build`, lancé par `scripts/deploy.sh` (voir `README.md`).
 
 ## Structure
 
 - `apps/api` démarre le backend (config, base, migrations). `apps/web` est le front.
-- `libs/domain`, `libs/api` (projet Nx `api-lib`), `libs/bot`, `libs/shared` : alias `@porolympiques/<lib>`.
+- `libs/domain` (règles et ports), `libs/database` (entités et repositories TypeORM), `libs/api` (projet Nx `api-lib`), `libs/bot`, `libs/shared` : alias `@porolympiques/<lib>`.
+- Les services du domaine sont des classes TypeScript pures, câblées avec leurs ports dans `apps/api` (voir `players.module.ts`).
 - Les frontières entre projets sont vérifiées par le lint (`eslint.config.mjs`) : ne pas les contourner.
+- Nouvelle route publique : uniquement avec `@Public()` et une bonne raison. Le garde global `SessionGuard` couvre tout le reste.

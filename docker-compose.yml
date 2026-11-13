@@ -30,14 +30,14 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-porolympiques}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-porolympiques}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant dans .env}
       APP_URL: ${APP_URL:?APP_URL manquant dans .env}
-      # Utilisées à partir des phases 2 (Discord) et 4 (IGDB) : elles deviendront obligatoires à ce moment-là.
-      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
-      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID manquant dans .env}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?DISCORD_CLIENT_SECRET manquant dans .env}
       DISCORD_REDIRECT_URI: ${APP_URL}/api/auth/discord/callback
-      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
-      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?DISCORD_BOT_TOKEN manquant dans .env}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:?DISCORD_GUILD_ID manquant dans .env}
+      DISCORD_ADMIN_IDS: ${DISCORD_ADMIN_IDS:?DISCORD_ADMIN_IDS manquant dans .env}
+      # Utilisées à partir des phases 4 (IGDB) et 7 (annonces) : elles deviendront obligatoires à ce moment-là.
       DISCORD_ANNOUNCEMENTS_CHANNEL_ID: ${DISCORD_ANNOUNCEMENTS_CHANNEL_ID:-}
-      DISCORD_ADMIN_IDS: ${DISCORD_ADMIN_IDS:-}
       TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
       TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
     networks:

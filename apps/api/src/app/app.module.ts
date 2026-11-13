@@ -8,9 +8,10 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ApiModule } from '@porolympiques/api';
 import { BotModule } from '@porolympiques/bot';
+import { DatabaseModule, ENTITIES } from '@porolympiques/database';
 import { validateEnv } from './config/env';
-import { ENTITIES } from './database/entities';
 import { MIGRATIONS } from './database/migrations';
+import { PlayersModule } from './players.module';
 
 @Module({
   imports: [
@@ -30,8 +31,10 @@ import { MIGRATIONS } from './database/migrations';
         synchronize: false,
       }),
     }),
-    ApiModule,
+    DatabaseModule,
+    PlayersModule,
     BotModule,
+    ApiModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
