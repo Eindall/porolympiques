@@ -18,6 +18,8 @@ WORKDIR /app
 COPY --from=build /app/dist/apps/api/package.json ./
 RUN npm install --omit=dev --no-package-lock --no-audit --no-fund && npm cache clean --force
 COPY --from=build /app/dist/apps/api/main.js ./main.js
+# Dossier des images envoyées (volume Docker) : créé ici pour appartenir à `node`, qui fait tourner l'API.
+RUN mkdir -p /data/uploads && chown node:node /data/uploads
 
 USER node
 EXPOSE 3000

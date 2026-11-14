@@ -1,4 +1,10 @@
-import { FICTIONAL_SEASON, fictionalCoefficient, fictionalPlaces, type SeasonStatus } from '@porolympiques/domain';
+import {
+  FICTIONAL_SEASON,
+  fictionalCoefficient,
+  fictionalPlaces,
+  normalizeName,
+  type SeasonStatus,
+} from '@porolympiques/domain';
 import { type DataSource, type EntityManager, In } from 'typeorm';
 import { FormatEntity } from '../catalog/format.entity';
 import { GameEntity } from '../catalog/game.entity';
@@ -63,7 +69,12 @@ export async function seedFictionalSeason(dataSource: DataSource): Promise<Seede
     const eventIds: Record<string, string> = {};
     const teamIds = new Map<string, string>();
     for (const fixture of FICTIONAL_SEASON.events) {
-      const game = await manager.save(manager.create(GameEntity, { source: 'custom', name: fixture.game, priceTier: 'free' }));
+      const game = await manager.save(manager.create(GameEntity, {
+          source: 'custom',
+          name: fixture.game,
+          searchName: normalizeName(fixture.game),
+          priceTier: 'free',
+        }));
       const format = await manager.save(
         manager.create(FormatEntity, {
           gameId: game.id,

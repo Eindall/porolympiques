@@ -30,6 +30,9 @@
       "@porolympiques/domain": [
         "./libs/domain/src/index.ts"
       ],
+      "@porolympiques/igdb": [
+        "./libs/igdb/src/index.ts"
+      ],
       "@porolympiques/shared": [
         "./libs/shared/src/index.ts"
       ]

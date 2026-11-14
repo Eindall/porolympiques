@@ -1,7 +1,6 @@
 /**
  * Variables d'environnement requises. Le démarrage échoue immédiatement, avec un message clair,
  * si l'une d'elles manque ou est invalide, plutôt que de planter plus tard.
- * Les variables IGDB (voir `.env.example`) deviendront obligatoires en phase 4.
  */
 const REQUIRED = [
   'DATABASE_URL',
@@ -13,6 +12,8 @@ const REQUIRED = [
   'DISCORD_BOT_TOKEN',
   'DISCORD_GUILD_ID',
   'DISCORD_ADMIN_IDS',
+  'TWITCH_CLIENT_ID',
+  'TWITCH_CLIENT_SECRET',
 ] as const;
 
 const SNOWFLAKE = /^\d{17,20}$/;
