@@ -14,7 +14,7 @@ export default [
       // - le front ne voit que les types partagés ;
       // - le domaine ne dépend ni de Discord, ni du front, ni de l'API ;
       // - l'API et le bot ne se connaissent pas, ils passent par le domaine ;
-      // - la persistance (`database`) implémente les ports du domaine ; seule l'app la câble.
+      // - la persistance (`database`) et le catalogue (`igdb`) implémentent les ports du domaine ; seule l'app les câble.
       '@nx/enforce-module-boundaries': [
         'error',
         {
@@ -24,11 +24,12 @@ export default [
             { sourceTag: 'scope:web', onlyDependOnLibsWithTags: ['scope:shared'] },
             {
               sourceTag: 'scope:api-app',
-              onlyDependOnLibsWithTags: ['scope:api', 'scope:bot', 'scope:database', 'scope:domain', 'scope:shared'],
+              onlyDependOnLibsWithTags: ['scope:api', 'scope:bot', 'scope:database', 'scope:domain', 'scope:igdb', 'scope:shared'],
             },
             { sourceTag: 'scope:database', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
             { sourceTag: 'scope:api', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
             { sourceTag: 'scope:bot', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
+            { sourceTag: 'scope:igdb', onlyDependOnLibsWithTags: ['scope:domain', 'scope:shared'] },
             {
               sourceTag: 'scope:domain',
               onlyDependOnLibsWithTags: ['scope:shared'],

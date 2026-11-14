@@ -12,6 +12,7 @@ import { SessionCleanupService } from './auth/session-cleanup.service';
 import { SessionGuard } from './auth/session.guard';
 import { SessionService } from './auth/session.service';
 import { HealthController } from './health/health.controller';
+import { CatalogController, GamesController, IdeasController } from './ideas/ideas.controller';
 import { MeController } from './players/me.controller';
 import { StandingsController } from './seasons/standings.controller';
 
@@ -30,7 +31,7 @@ import { StandingsController } from './seasons/standings.controller';
       }),
     }),
   ],
-  controllers: [HealthController, AuthController, MeController, StandingsController],
+  controllers: [HealthController, AuthController, MeController, StandingsController, CatalogController, IdeasController, GamesController],
   providers: [
     SessionService,
     SessionCleanupService,
