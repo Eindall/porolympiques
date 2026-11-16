@@ -40,3 +40,10 @@ function offsetAt(utc: number): number {
   const parts = Object.fromEntries(PARTS.formatToParts(new Date(utc)).map((part) => [part.type, Number(part.value)]));
   return Date.UTC(parts['year'], parts['month'] - 1, parts['day'], parts['hour'], parts['minute']) - Math.floor(utc / 60_000) * 60_000;
 }
+
+const DAY = new Intl.DateTimeFormat('fr-FR', { timeZone: ZONE, dateStyle: 'medium' });
+
+/** « 2 févr. 2026 », en heure de Paris. */
+export function formatParisDate(iso: string | null): string {
+  return iso ? DAY.format(new Date(iso)) : '';
+}

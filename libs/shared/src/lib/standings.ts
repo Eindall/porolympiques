@@ -46,3 +46,31 @@ export interface SeasonStandingsDto {
   season: SeasonSummaryDto;
   entries: StandingsEntryDto[];
 }
+
+export type MedalPlaceDto = 1 | 2 | 3;
+
+/** Un podium de main, ou de side qui compte (médaille discrète). */
+export interface MedalDto {
+  seasonId: string;
+  eventId: string;
+  label: string;
+  type: EventTypeDto;
+  place: MedalPlaceDto;
+  /** ISO 8601, UTC. */
+  endDate: string;
+}
+
+/** Réponse de `GET /api/players/:id`. */
+export interface PlayerRecordDto {
+  player: StandingsEntryDto['player'];
+  /** Les plus récentes d'abord. */
+  seasons: { season: SeasonSummaryDto; rank: number; score: number; results: ScoredResultDto[] }[];
+  medals: MedalDto[];
+  /** Saisons terminées dont le joueur est champion. */
+  trophies: SeasonSummaryDto[];
+}
+
+/** Réponse de `GET /api/hall-of-fame` : les saisons terminées, les plus récentes d'abord. */
+export interface HallOfFameDto {
+  seasons: { season: SeasonSummaryDto; podium: StandingsEntryDto[] }[];
+}

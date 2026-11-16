@@ -1,6 +1,6 @@
 import { Controller, Get, NotFoundException, Param, ParseUUIDPipe } from '@nestjs/common';
-import { type SeasonStandings, StandingsService } from '@porolympiques/domain';
-import type { SeasonStandingsDto } from '@porolympiques/shared';
+import { type ScoredResult, type Season, type SeasonStandings, type StandingsEntry, StandingsService } from '@porolympiques/domain';
+import type { ScoredResultDto, SeasonStandingsDto, SeasonSummaryDto, StandingsEntryDto } from '@porolympiques/shared';
 
 @Controller('seasons')
 export class StandingsController {
@@ -22,23 +22,26 @@ export class StandingsController {
   }
 }
 
-function toDto({ season, entries }: SeasonStandings): SeasonStandingsDto {
+export function toSeasonSummaryDto(season: Season): SeasonSummaryDto {
   return {
-    season: {
-      id: season.id,
-      name: season.name,
-      status: season.status,
-      startDate: season.startDate.toISOString(),
-      endDate: season.endDate.toISOString(),
-      mainQuota: season.mainQuota,
-      sideQuota: season.sideQuota,
-    },
-    entries: entries.map((entry) => ({
-      rank: entry.rank,
-      player: entry.player,
-      score: entry.score,
-      wins: entry.wins,
-      results: entry.results.map((result) => ({ ...result, endDate: result.endDate.toISOString() })),
-    })),
+    id: season.id,
+    name: season.name,
+    status: season.status,
+    startDate: season.startDate.toISOString(),
+    endDate: season.endDate.toISOString(),
+    mainQuota: season.mainQuota,
+    sideQuota: season.sideQuota,
   };
+}
+
+export function toScoredResultDto(result: ScoredResult): ScoredResultDto {
+  return { ...result, endDate: result.endDate.toISOString() };
+}
+
+export function toEntryDto(entry: StandingsEntry): StandingsEntryDto {
+  return { rank: entry.rank, player: entry.player, score: entry.score, wins: entry.wins, results: entry.results.map(toScoredResultDto) };
+}
+
+function toDto({ season, entries }: SeasonStandings): SeasonStandingsDto {
+  return { season: toSeasonSummaryDto(season), entries: entries.map(toEntryDto) };
 }

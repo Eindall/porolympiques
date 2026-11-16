@@ -68,6 +68,9 @@ export class InMemoryEvents implements EventRepository {
   async listBySeason(seasonId: string) {
     return [...this.rows.values()].filter((event) => event.seasonId === seasonId).map((event) => this.summary(event));
   }
+  async listOpen() {
+    return [...this.rows.values()].filter((event) => OPEN_EVENT_STATUSES.includes(event.status)).map((event) => this.summary(event));
+  }
   async create(event: NewEvent) {
     const created: Event = {
       ...event,

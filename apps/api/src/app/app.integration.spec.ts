@@ -21,9 +21,12 @@ import type {
   EventDto,
   GameDto,
   GameSearchDto,
+  HallOfFameDto,
+  HomeDto,
   IdeaDto,
   MeDto,
   NextGameDto,
+  PlayerRecordDto,
   SeasonDto,
   SeasonStandingsDto,
 } from '@porolympiques/shared';
@@ -616,6 +619,70 @@ describeWithDb('Application (intégration)', () => {
       const response = await fetch(`${base}/api/games/${gameId}/cover`, { method: 'PUT', headers: { cookie: alice }, body: new FormData() });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('Pages joueur', () => {
+    const get = (path: string, session?: string) => fetch(`${base}/api/${path}`, { headers: session ? { cookie: session } : {} });
+
+    it('sont derrière le mur de connexion', async () => {
+      await seedFictionalSeason(dataSource);
+      for (const path of ['home', 'hall-of-fame', `players/${crypto.randomUUID()}`]) expect((await get(path)).status).toBe(401);
+    });
+
+    it('montre l’event en cours et le top 5 de la saison sur l’accueil', async () => {
+      await seedFictionalSeason(dataSource);
+      const { session } = await login();
+
+      const home = (await (await get('home', session)).json()) as HomeDto;
+
+      expect(home.season?.name).toBe(FICTIONAL_SEASON.name);
+      expect(home.ongoing.map((event) => `${event.game.name} — ${event.format.name}`)).toEqual(['Mario Kart 8 — Grand Prix 150cc']);
+      expect(home.next).toBeNull();
+      expect(home.top.map((entry) => [entry.rank, entry.player.pseudo])).toEqual([
+        [1, 'Alice'],
+        [2, 'Bruno'],
+        [3, 'Chloé'],
+        [4, 'David'],
+        [5, 'Emma'],
+        [5, 'Farid'],
+      ]);
+    });
+
+    it('rassemble les résultats et les médailles d’un joueur', async () => {
+      const { seasonId, playerIds } = await seedFictionalSeason(dataSource);
+      const { session } = await login();
+
+      const record = (await (await get(`players/${playerIds['alice']}`, session)).json()) as PlayerRecordDto;
+
+      expect(record.player.pseudo).toBe('Alice');
+      expect(record.seasons).toHaveLength(1);
+      expect(record.seasons[0]).toMatchObject({ season: { id: seasonId }, rank: 1, score: 65 });
+      // Podiums des mains et du side validé avec 4 classés ; rien pour le side à 3 classés.
+      expect(record.medals.map((medal) => [medal.label, medal.type, medal.place])).toEqual([
+        ['Celeste — Speedrun any%', 'main', 3],
+        ['Overcooked 2 — Relais en cuisine', 'main', 3],
+        ['Tetris 99 — Meilleur score', 'main', 2],
+        ['Wikipédia — Speedrun de liens', 'side', 2],
+        ['Trackmania — Contre-la-montre', 'main', 1],
+      ]);
+      expect(record.trophies).toEqual([]);
+      expect((await get(`players/${crypto.randomUUID()}`, session)).status).toBe(404);
+    });
+
+    it('donne le trophée et le palmarès une fois la saison terminée', async () => {
+      const { seasonId, playerIds } = await seedFictionalSeason(dataSource);
+      const { session } = await login();
+      expect(((await (await get('hall-of-fame', session)).json()) as HallOfFameDto).seasons).toEqual([]);
+
+      await dataSource.query(`UPDATE seasons SET status = 'finished' WHERE id = $1`, [seasonId]);
+      const hall = (await (await get('hall-of-fame', session)).json()) as HallOfFameDto;
+
+      expect(hall.seasons.map(({ season, podium }) => [season.id, podium.map((entry) => [entry.rank, entry.player.pseudo])])).toEqual([
+        [seasonId, [[1, 'Alice'], [2, 'Bruno'], [3, 'Chloé']]],
+      ]);
+      const record = (await (await get(`players/${playerIds['alice']}`, session)).json()) as PlayerRecordDto;
+      expect(record.trophies.map((season) => season.id)).toEqual([seasonId]);
     });
   });
 

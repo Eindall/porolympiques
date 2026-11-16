@@ -65,7 +65,17 @@ Les règles vivent dans `libs/domain/src/lib/seasons` et `libs/domain/src/lib/ev
 - La validation d'un side affiche des avertissements (moins de 4 classés, annonce moins d'une semaine avant), sans bloquer.
 - Choix du jeu suivant : les classés premiers du dernier main terminé choisissent parmi les 5 formats les plus upvotés, pendant 3 jours après la clôture. Le premier choix enregistré compte et retient le format. Sans choix, ou avant tout main, c'est le format le plus upvoté. Le formulaire du main suivant est prérempli avec ce format.
 
-Routes joueur : `GET /api/seasons`, `GET /api/seasons/:id/events`, `GET /api/events/:id`, `POST /api/events/:id/registrations`, `GET` et `PUT /api/game-choice`, `GET /api/players`. Routes admin sous `/api/admin` : saisons (`POST`, `PATCH`, `start`, `finish`) et events (`POST`, `PATCH`, `format`, `start`, `cancel`, inscrits, équipes, `results`, `validated`).
+## Pages joueur
+
+- **Accueil** : events en cours, prochain event à annoncer, top 5 de la saison en cours (ex æquo compris).
+- **Classement** : saison en cours par défaut, sélecteur de saison, résultats comptés puis écartés en grisé.
+- **Events** : timeline d'une saison. À venir : annonce dans le futur ; en cours : annoncé, pas encore terminé ; passés : terminés ou annulés.
+- **Joueur** (`/joueurs/:id`) : trophées, médailles et résultats par saison. Médailles : podiums des mains terminés, et version discrète pour les sides qui comptent (validés, au moins 4 classés), ex æquo compris. Trophée : les 1ers d'une saison terminée, tous en cas d'égalité parfaite.
+- **Palmarès** : podium de chaque saison terminée.
+
+Tout est recalculé à partir des places (`libs/domain/src/lib/standings/honours.ts`, `libs/domain/src/lib/events/timeline.ts`). Routes : `GET /api/home`, `GET /api/players/:id`, `GET /api/hall-of-fame`.
+
+Routes joueur des events : `GET /api/seasons`, `GET /api/seasons/:id/events`, `GET /api/events/:id`, `POST /api/events/:id/registrations`, `GET` et `PUT /api/game-choice`, `GET /api/players`. Routes admin sous `/api/admin` : saisons (`POST`, `PATCH`, `start`, `finish`) et events (`POST`, `PATCH`, `format`, `start`, `cancel`, inscrits, équipes, `results`, `validated`).
 
 ## Développement
 

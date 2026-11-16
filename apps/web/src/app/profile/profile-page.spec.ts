@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { ProfilePage } from './profile-page';
 
@@ -9,6 +10,7 @@ describe('ProfilePage', () => {
     TestBed.configureTestingModule({
       imports: [ProfilePage],
       providers: [
+        provideRouter([]),
         {
           provide: AuthService,
           useValue: { me: () => ({ id: 'p-1', pseudo: 'Alice', avatarUrl: 'https://cdn.discordapp.com/a.png', role }), logout },

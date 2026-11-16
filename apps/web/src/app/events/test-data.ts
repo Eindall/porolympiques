@@ -21,6 +21,7 @@ export function eventDto(overrides: Partial<EventDto> = {}): EventDto {
     format: { id: 'f-1', name: 'Speedrun', description: '', teamMode: 'solo', playMode: 'async' },
     game: { id: 'g-1', name: 'Trackmania', coverUrl: null },
     registrationCount: 2,
+    timeline: 'ongoing',
     teams: [],
     registrations: [
       { playerId: 'p-1', pseudo: 'Alice', avatarUrl: '', teamId: null },
