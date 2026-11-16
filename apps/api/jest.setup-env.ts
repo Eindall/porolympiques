@@ -17,6 +17,8 @@ if (url) {
   }
   Object.assign(process.env, {
     DATABASE_URL: url,
+    // Images envoyées pendant les tests : un dossier temporaire, jamais celui de dev.
+    UPLOADS_DIR: require('node:path').join(require('node:os').tmpdir(), `porolympiques-test-uploads-${process.pid}`),
     JWT_SECRET: 'test-secret-test-secret-test-secret-test',
     APP_URL: 'http://localhost:4200',
     DISCORD_CLIENT_ID: 'test-client-id',
@@ -25,5 +27,7 @@ if (url) {
     DISCORD_BOT_TOKEN: 'test-bot-token',
     DISCORD_GUILD_ID: '300000000000000000',
     DISCORD_ADMIN_IDS: '100000000000000009',
+    TWITCH_CLIENT_ID: 'test-twitch-id',
+    TWITCH_CLIENT_SECRET: 'test-twitch-secret',
   });
 }

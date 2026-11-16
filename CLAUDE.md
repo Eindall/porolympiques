@@ -50,7 +50,7 @@ Ces deux fichiers sont des exports d'un doc tenu ailleurs. Ne pas les modifier :
 ## Structure
 
 - `apps/api` démarre le backend (config, base, migrations). `apps/web` est le front.
-- `libs/domain` (règles et ports), `libs/database` (entités et repositories TypeORM), `libs/api` (projet Nx `api-lib`), `libs/bot`, `libs/shared` : alias `@porolympiques/<lib>`.
+- `libs/domain` (règles et ports), `libs/database` (entités et repositories TypeORM), `libs/igdb` (adapter du catalogue), `libs/api` (projet Nx `api-lib`), `libs/bot`, `libs/shared` : alias `@porolympiques/<lib>`.
 - Les services du domaine sont des classes TypeScript pures, câblées avec leurs ports dans `apps/api` (voir `players.module.ts`).
 - Les frontières entre projets sont vérifiées par le lint (`eslint.config.mjs`) : ne pas les contourner.
 - Nouvelle route publique : uniquement avec `@Public()` et une bonne raison. Le garde global `SessionGuard` couvre tout le reste.

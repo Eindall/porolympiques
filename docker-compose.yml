@@ -36,10 +36,14 @@ services:
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?DISCORD_BOT_TOKEN manquant dans .env}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:?DISCORD_GUILD_ID manquant dans .env}
       DISCORD_ADMIN_IDS: ${DISCORD_ADMIN_IDS:?DISCORD_ADMIN_IDS manquant dans .env}
-      # Utilisées à partir des phases 4 (IGDB) et 7 (annonces) : elles deviendront obligatoires à ce moment-là.
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:?TWITCH_CLIENT_ID manquant dans .env}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:?TWITCH_CLIENT_SECRET manquant dans .env}
+      # Utilisée à partir de la phase 7 (annonces) : elle deviendra obligatoire à ce moment-là.
       DISCORD_ANNOUNCEMENTS_CHANNEL_ID: ${DISCORD_ANNOUNCEMENTS_CHANNEL_ID:-}
-      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
-      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      # Images des jeux saisis librement, envoyées par les joueurs.
+      - ${UPLOADS_DATA_DIR:-porolympiques-uploads}:/data/uploads
     networks:
       default:
         aliases: [porolympiques-api]
@@ -59,6 +63,7 @@ services:
 
 volumes:
   porolympiques-db:
+  porolympiques-uploads:
 
 networks:
   proxy:

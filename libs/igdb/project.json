@@ -1,0 +1,14 @@
+{
+  "name": "igdb",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/igdb/src",
+  "projectType": "library",
+  "tags": ["scope:igdb","type:data-access"],
+  "targets": {
+    "test": {
+      "options": {
+        "passWithNoTests": true
+      }
+    }
+  }
+}

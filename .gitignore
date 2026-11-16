@@ -54,3 +54,6 @@ vitest.config.*.timestamp*
 
 # Sauvegardes de la base (scripts/backup-db.sh) : données personnelles
 /backups
+
+# Images envoyées en dev (UPLOADS_DIR par défaut)
+/data

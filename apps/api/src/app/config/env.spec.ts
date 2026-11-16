@@ -10,6 +10,8 @@ const valid = {
   DISCORD_BOT_TOKEN: 'bot-token',
   DISCORD_GUILD_ID: '300000000000000000',
   DISCORD_ADMIN_IDS: '100000000000000009',
+  TWITCH_CLIENT_ID: 'twitch-id',
+  TWITCH_CLIENT_SECRET: 'twitch-secret',
 };
 
 describe('validateEnv', () => {
