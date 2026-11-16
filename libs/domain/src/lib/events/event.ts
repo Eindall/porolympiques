@@ -36,17 +36,22 @@ export interface Event {
   validated: boolean;
   /** Date de clôture (saisie des places) : point de départ du délai de choix du jeu suivant. */
   finishedAt: Date | null;
+  /** Message d'annonce posté par le bot, s'il l'a été. */
+  announcementMessageId: string | null;
+  /** Message des résultats posté par le bot à la clôture. */
+  resultsMessageId: string | null;
   createdAt: Date;
 }
 
-export type NewEvent = Omit<Event, 'id' | 'status' | 'validated' | 'finishedAt' | 'createdAt'>;
+export type NewEvent = Omit<Event, 'id' | 'status' | 'validated' | 'finishedAt' | 'announcementMessageId' | 'resultsMessageId' | 'createdAt'>;
 
 /** Champs que l'admin modifie librement. */
 export type EventDetailsChanges = Partial<
   Pick<Event, 'rules' | 'announceDate' | 'registrationEnd' | 'endDate' | 'liveDate' | 'hostId' | 'challongeUrl' | 'coefficient'>
 >;
 
-export type EventChanges = EventDetailsChanges & Partial<Pick<Event, 'status' | 'validated' | 'formatId'>>;
+export type EventChanges = EventDetailsChanges &
+  Partial<Pick<Event, 'status' | 'validated' | 'formatId' | 'announcementMessageId' | 'resultsMessageId'>>;
 
 /** Une équipe d'un event par équipe. */
 export interface Team {

@@ -50,6 +50,8 @@ function toEvent(row: EventEntity): Event {
     challongeUrl: row.challongeUrl,
     validated: row.validated,
     finishedAt: row.finishedAt,
+    announcementMessageId: row.announcementMessageId,
+    resultsMessageId: row.resultsMessageId,
     createdAt: row.createdAt,
   };
 }

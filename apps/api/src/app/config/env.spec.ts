@@ -47,6 +47,12 @@ describe('validateEnv', () => {
   it('refuse une liste d’admins invalide', () => {
     expect(() => validateEnv({ ...valid, DISCORD_ADMIN_IDS: '100000000000000009,tong' })).toThrow('invalides : tong');
   });
+
+  it('accepte un salon d’annonces vide ou valide, refuse le reste', () => {
+    expect(() => validateEnv({ ...valid, DISCORD_ANNOUNCEMENTS_CHANNEL_ID: '' })).not.toThrow();
+    expect(() => validateEnv({ ...valid, DISCORD_ANNOUNCEMENTS_CHANNEL_ID: '400000000000000000' })).not.toThrow();
+    expect(() => validateEnv({ ...valid, DISCORD_ANNOUNCEMENTS_CHANNEL_ID: '#annonces' })).toThrow('DISCORD_ANNOUNCEMENTS_CHANNEL_ID');
+  });
 });
 
 describe('parseAdminIds', () => {

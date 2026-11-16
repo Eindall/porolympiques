@@ -28,6 +28,11 @@ export class PlayersService {
     return this.players.findById(id);
   }
 
+  /** Le joueur d'un compte Discord (le bot reconnaît ainsi l'auteur d'une commande). */
+  findByDiscordId(discordId: string): Promise<Player | null> {
+    return this.players.findByDiscordId(discordId);
+  }
+
   /**
    * Connexion : `member` est la fiche lue sur le serveur au moment de la connexion, `null` si la personne
    * n'en est pas membre. Un non-membre est refusé, et désactivé s'il était connu.

@@ -1,4 +1,5 @@
 import {
+  SILENT_MESSAGE_ID,
   FICTIONAL_SEASON,
   fictionalCoefficient,
   fictionalPlaces,
@@ -97,6 +98,9 @@ export async function seedFictionalSeason(dataSource: DataSource): Promise<Seede
           endDate,
           finishedAt: fixture.status === 'finished' ? endDate : null,
           validated: fixture.validated,
+          // Saison fictive : jamais annoncée sur Discord.
+          announcementMessageId: SILENT_MESSAGE_ID,
+          resultsMessageId: SILENT_MESSAGE_ID,
         }),
       );
       eventIds[fixture.key] = event.id;

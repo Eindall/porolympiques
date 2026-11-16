@@ -8,7 +8,12 @@ import { Test } from '@nestjs/testing';
 import { DiscordStrategy } from '@porolympiques/api';
 import { seedFictionalSeason } from '@porolympiques/database';
 import {
+  AnnouncementsService,
   type CatalogGame,
+  EVENT_ANNOUNCER,
+  type EventAnnouncement,
+  type EventAnnouncer,
+  type ResultsAnnouncement,
   FICTIONAL_SEASON,
   GAME_CATALOG,
   type GameCatalog,
@@ -76,6 +81,36 @@ class FakeGameCatalog implements GameCatalog {
   }
 }
 
+/** Bot simulé pour les messages d'event : garde chaque version des messages postés. Éteint par défaut. */
+class FakeAnnouncer implements EventAnnouncer {
+  ready = false;
+  next = 1;
+  announcements = new Map<string, EventAnnouncement[]>();
+  results = new Map<string, ResultsAnnouncement[]>();
+
+  isReady() {
+    return this.ready;
+  }
+  async postAnnouncement(announcement: EventAnnouncement) {
+    const id = `m-${this.next++}`;
+    this.announcements.set(id, [announcement]);
+    return id;
+  }
+  async editAnnouncement(id: string, announcement: EventAnnouncement) {
+    this.announcements.get(id)?.push(announcement);
+    return this.announcements.has(id);
+  }
+  async postResults(results: ResultsAnnouncement) {
+    const id = `m-${this.next++}`;
+    this.results.set(id, [results]);
+    return id;
+  }
+  async editResults(id: string, results: ResultsAnnouncement) {
+    this.results.get(id)?.push(results);
+    return this.results.has(id);
+  }
+}
+
 function guildMember(discordId: string, overrides: Partial<GuildMember> = {}): GuildMember {
   return {
     discordId,
@@ -94,6 +129,7 @@ describeWithDb('Application (intégration)', () => {
   let dataSource: DataSource;
   const directory = new FakeGuildDirectory();
   const catalog = new FakeGameCatalog();
+  const announcer = new FakeAnnouncer();
   /** Identifiant Discord renvoyé par le faux échange OAuth. */
   let oauthDiscordId = ALICE_ID;
 
@@ -108,6 +144,8 @@ describeWithDb('Application (intégration)', () => {
       .useValue(directory)
       .overrideProvider(GAME_CATALOG)
       .useValue(catalog)
+      .overrideProvider(EVENT_ANNOUNCER)
+      .useValue(announcer)
       .compile();
     app = moduleRef.createNestApplication<NestExpressApplication>();
     configureApp(app);
@@ -836,6 +874,59 @@ describeWithDb('Application (intégration)', () => {
       ]);
       const events = await json<EventDto[]>(api(`seasons/${season.id}/events`, sessions.alice));
       expect(events.map((item) => item.status)).toEqual(['finished', 'finished', 'finished']);
+    });
+
+    it('poste l’annonce à la création et les résultats à la clôture, puis les tient à jour', async () => {
+      const { sessions, ids, idea, event } = await circuit();
+      announcer.ready = true;
+      const settled = () => app.get(AnnouncementsService).settled();
+      try {
+        const main = await event('main', (await idea('Speedrun')).id);
+        await settled();
+        const [announcementId, versions] = [...announcer.announcements.entries()].at(-1) as [string, EventAnnouncement[]];
+        expect(versions[0]).toMatchObject({ registrationOpen: true, event: { id: main.id, registrationCount: 0 } });
+
+        await json(send('POST', `events/${main.id}/registrations`, sessions.alice));
+        await json(send('POST', `events/${main.id}/registrations`, sessions.bruno));
+        await settled();
+        expect(versions.at(-1)?.event.registrationCount).toBe(2);
+
+        const close = (places: [string, number][]) =>
+          json(send('PUT', `admin/events/${main.id}/results`, sessions.admin, { players: places.map(([name, place]) => ({ playerId: ids[name], place })) }));
+        await close([['alice', 1], ['bruno', 2]]);
+        await settled();
+        expect(announcer.results.size).toBe(1);
+        const [results] = [...announcer.results.values()];
+        expect(results[0].lines.map((line) => [line.place, line.label])).toEqual([[1, 'Ali la Menace'], [2, 'Bruno']]);
+        expect(results[0].standings.map((entry) => entry.player.pseudo)).toEqual(['Ali la Menace', 'Bruno']);
+        expect(versions.at(-1)).toMatchObject({ registrationOpen: false, event: { status: 'finished' } });
+
+        await close([['alice', 2], ['bruno', 1]]);
+        await settled();
+        expect(announcer.results.size).toBe(1);
+        expect(results.at(-1)?.lines.map((line) => line.label)).toEqual(['Bruno', 'Ali la Menace']);
+        expect(announcer.announcements.has(announcementId)).toBe(true);
+
+        const stored = await dataSource.query('SELECT announcement_message_id, results_message_id FROM events WHERE id = $1', [main.id]);
+        expect(stored).toEqual([{ announcement_message_id: announcementId, results_message_id: [...announcer.results.keys()][0] }]);
+      } finally {
+        announcer.ready = false;
+      }
+    });
+
+    it('garde secret un event dont la date d’annonce n’est pas arrivée', async () => {
+      const { idea, event } = await circuit();
+      announcer.ready = true;
+      try {
+        const before = announcer.announcements.size;
+        const later = await event('main', (await idea('Plus tard')).id, { announceDate: inDays(3) });
+        await app.get(AnnouncementsService).tick();
+        expect(announcer.announcements.size).toBe(before);
+        const stored = await dataSource.query('SELECT announcement_message_id FROM events WHERE id = $1', [later.id]);
+        expect(stored[0].announcement_message_id).toBeNull();
+      } finally {
+        announcer.ready = false;
+      }
     });
 
     it('ferme les inscriptions après la date limite, sauf pour l’admin', async () => {

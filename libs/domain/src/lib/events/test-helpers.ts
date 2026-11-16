@@ -78,6 +78,8 @@ export class InMemoryEvents implements EventRepository {
       status: 'registration',
       validated: false,
       finishedAt: null,
+      announcementMessageId: null,
+      resultsMessageId: null,
       createdAt: new Date(2026, 0, this.next),
     };
     this.next++;

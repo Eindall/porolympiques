@@ -90,6 +90,32 @@ La migration `RoadmapSuggestions` reprend les pistes des specs au nom de l'admin
 
 Règles dans `libs/domain/src/lib/suggestions/suggestions.service.ts`. Routes : `GET` et `POST /api/suggestions`, `GET /api/suggestions/roadmap`, `GET`, `PATCH` et `DELETE /api/suggestions/:id`, `PUT` et `DELETE /api/suggestions/:id/vote`, `PUT /api/suggestions/:id/status`.
 
+## Bot Discord
+
+Le bot vit dans le backend (`libs/bot`) et passe par les mêmes services du domaine que le site : mêmes règles, mêmes refus.
+
+**Messages d'event**, dans le salon `DISCORD_ANNOUNCEMENTS_CHANNEL_ID` (vide : pas d'annonces) :
+
+- **Annonce** : postée quand la date d'annonce arrive (vérifiée chaque minute), tout de suite si elle est déjà passée, avec @everyone, un bouton « S'inscrire » et un lien vers l'event. Le message suit ensuite l'event : inscrits, dates, inscriptions closes, annulation, clôture. Supprimé à la main, il est reposté tant que l'event est ouvert.
+- **Résultats** : à la clôture, les places de l'event et le top 10 de la saison. Une correction des places modifie ce message.
+- Les events créés avant le bot, et ceux de la saison fictive, restent sans message.
+- Si Discord ne répond pas, le site continue ; le passage suivant rattrape.
+
+Règles dans `libs/domain/src/lib/announcements/announcements.service.ts`. Les identifiants des messages sont gardés dans `events` (`announcement_message_id`, `results_message_id`).
+
+**Commandes**, enregistrées sur le serveur au démarrage. Le joueur est reconnu par son identifiant Discord.
+
+| Commande | Effet | Réponse |
+| --- | --- | --- |
+| `/leaderboard [saison]` | Classement de la saison en cours, ou d'une autre (autocomplete) | Publique |
+| `/event [event]` | Events en cours, ou le détail de l'un d'eux | Publique |
+| `/join [event]` | Inscription (event choisi d'office s'il n'y en a qu'un d'ouvert) ; aussi en bouton sous l'annonce | Privée |
+| `/list-games` | Top 10 de la boîte à idées, un bouton d'upvote par format (ajoute ou retire son vote) | Publique, confirmation privée |
+| `/add-game jeu format equipe mode [prix] [description]` | Idée de format ; jeu par autocomplete du catalogue ou saisie libre | Privée |
+| `/profile [joueur]` | Trophées, médailles et saisons d'un joueur | Publique |
+
+Permissions du bot dans le salon des annonces : voir le salon, envoyer des messages, intégrer des liens, lire l'historique, mentionner @everyone. Les dates s'affichent avec les horodatages Discord, dans le fuseau de chaque lecteur.
+
 ## Développement
 
 Prérequis : Node.js 22 ou plus, npm, Docker avec Compose.
@@ -105,7 +131,11 @@ npm run dev:web               # front sur http://localhost:4200 (proxy /api vers
 
 Ouvre <http://localhost:4200> plutôt que le port 3000 : le cookie de session et le retour OAuth passent par le proxy du front. L'URL `http://localhost:4200/api/auth/discord/callback` doit être déclarée dans les redirects OAuth2 de l'application Discord.
 
-En dev, le bot se connecte avec le même jeton qu'en prod : les deux reçoivent les événements du serveur, chacun met à jour sa propre base.
+### Bot en dev
+
+Une seule application Discord (et un seul jeton) sert la prod et le dev, mais chaque instance a son serveur : le serveur principal pour la prod, un serveur de dev pour `npm run dev:api` (`DISCORD_GUILD_ID` et `DISCORD_ANNOUNCEMENTS_CHANNEL_ID` du `.env` de dev). Les deux instances reçoivent les événements des deux serveurs, et chacune ignore ce qui ne vient pas du sien : membres, commandes, boutons. Les commandes sont enregistrées par serveur, et le bot refuse de poster dans un salon d'un autre serveur. En dev, on se connecte au site avec un compte membre du serveur de dev.
+
+Le bot doit être invité sur le serveur de dev comme sur le principal (scopes `bot` et `applications.commands`). `DISCORD_BOT_INTERACTIONS=off` ne sert que si une instance de dev pointe sur le serveur principal.
 
 ### Base de données
 
