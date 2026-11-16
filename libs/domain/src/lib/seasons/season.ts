@@ -24,3 +24,6 @@ export interface Season {
   sideQuota: number;
   status: SeasonStatus;
 }
+
+export type NewSeason = Omit<Season, 'id' | 'status'>;
+export type SeasonChanges = Partial<Omit<Season, 'id'>>;

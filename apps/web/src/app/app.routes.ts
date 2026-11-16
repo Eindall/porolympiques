@@ -1,5 +1,10 @@
 import { Route } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth.guard';
+import { AdminEventPage } from './admin/admin-event-page';
+import { AdminPage } from './admin/admin-page';
+import { adminGuard, authGuard, guestGuard } from './core/auth.guard';
+import { EventPage } from './events/event-page';
+import { EventsPage } from './events/events-page';
+import { GameChoicePage } from './events/game-choice-page';
 import { HomePage } from './home/home-page';
 import { IdeasPage } from './ideas/ideas-page';
 import { NewIdeaPage } from './ideas/new-idea-page';
@@ -18,7 +23,12 @@ export const appRoutes: Route[] = [
       { path: '', component: HomePage, title: 'Porolympiques' },
       { path: 'idees', component: IdeasPage, title: 'Boîte à idées · Porolympiques' },
       { path: 'idees/nouvelle', component: NewIdeaPage, title: 'Proposer une idée · Porolympiques' },
+      { path: 'events', component: EventsPage, title: 'Events · Porolympiques' },
+      { path: 'events/:id', component: EventPage, title: 'Event · Porolympiques' },
+      { path: 'choix-du-jeu', component: GameChoicePage, title: 'Prochain jeu · Porolympiques' },
       { path: 'profil', component: ProfilePage, title: 'Mon profil · Porolympiques' },
+      { path: 'admin', component: AdminPage, canActivate: [adminGuard], title: 'Admin · Porolympiques' },
+      { path: 'admin/events/:id', component: AdminEventPage, canActivate: [adminGuard], title: 'Gérer un event · Porolympiques' },
     ],
   },
   { path: '**', redirectTo: '' },

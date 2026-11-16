@@ -52,6 +52,21 @@ Le calcul vit dans `libs/domain/src/lib/standings` (fonction pure `computeStandi
 
 Routes : `GET /api/seasons/current/standings` (saison en cours) et `GET /api/seasons/:id/standings`.
 
+## Saisons et events
+
+Les règles vivent dans `libs/domain/src/lib/seasons` et `libs/domain/src/lib/events`. La gestion se fait sur la page `/admin` du site, réservée à l'admin (l'API revérifie le rôle à chaque action).
+
+- Une seule saison active à la fois : l'admin la démarre, puis la termine. Le barème et les quotas restent modifiables, le classement se recalcule.
+- Un event (main au coefficient 1, side à 0,5 par défaut) retient son format, dont les votes sont gelés.
+- Les inscriptions sont ouvertes de la création de l'event jusqu'à sa date de fin d'inscription, et se ferment aussi quand l'admin le démarre. Pas de désinscription : seul l'admin retire un inscrit, ou en ajoute un en retard.
+- En équipe, l'admin compose les équipes, et chaque membre prend la place de son équipe.
+- La première saisie des places clôt l'event : ses votes sont effacés et son format redevient proposé. Une saisie suivante ne fait que corriger les places.
+- Annuler un event ou changer son jeu libère l'ancien format, qui garde ses votes.
+- La validation d'un side affiche des avertissements (moins de 4 classés, annonce moins d'une semaine avant), sans bloquer.
+- Choix du jeu suivant : les classés premiers du dernier main terminé choisissent parmi les 5 formats les plus upvotés, pendant 3 jours après la clôture. Le premier choix enregistré compte et retient le format. Sans choix, ou avant tout main, c'est le format le plus upvoté. Le formulaire du main suivant est prérempli avec ce format.
+
+Routes joueur : `GET /api/seasons`, `GET /api/seasons/:id/events`, `GET /api/events/:id`, `POST /api/events/:id/registrations`, `GET` et `PUT /api/game-choice`, `GET /api/players`. Routes admin sous `/api/admin` : saisons (`POST`, `PATCH`, `start`, `finish`) et events (`POST`, `PATCH`, `format`, `start`, `cancel`, inscrits, équipes, `results`, `validated`).
+
 ## Développement
 
 Prérequis : Node.js 22 ou plus, npm, Docker avec Compose.

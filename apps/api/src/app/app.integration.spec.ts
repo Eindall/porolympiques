@@ -17,7 +17,16 @@ import {
   type GuildMember,
   PlayersService,
 } from '@porolympiques/domain';
-import type { GameDto, GameSearchDto, IdeaDto, SeasonStandingsDto } from '@porolympiques/shared';
+import type {
+  EventDto,
+  GameDto,
+  GameSearchDto,
+  IdeaDto,
+  MeDto,
+  NextGameDto,
+  SeasonDto,
+  SeasonStandingsDto,
+} from '@porolympiques/shared';
 import { DataSource } from 'typeorm';
 import { assertTestDatabase } from './testing/assert-test-database';
 
@@ -25,6 +34,8 @@ const APP_URL = 'http://localhost:4200';
 const ADMIN_ID = '100000000000000009';
 const ALICE_ID = '100000000000000001';
 const BRUNO_ID = '100000000000000002';
+const CHLOE_ID = '100000000000000003';
+const DAVID_ID = '100000000000000004';
 
 const describeWithDb = process.env['TEST_DATABASE_URL'] ? describe : describe.skip;
 
@@ -119,6 +130,8 @@ describeWithDb('Application (intégration)', () => {
       [ALICE_ID, guildMember(ALICE_ID, { globalName: 'Alice', nickname: 'Ali la Menace' })],
       [ADMIN_ID, guildMember(ADMIN_ID, { globalName: 'Tong' })],
       [BRUNO_ID, guildMember(BRUNO_ID, { globalName: 'Bruno' })],
+      [CHLOE_ID, guildMember(CHLOE_ID, { globalName: 'Chloé' })],
+      [DAVID_ID, guildMember(DAVID_ID, { globalName: 'David' })],
     ]);
     directory.unavailable = false;
     catalog.down = false;
@@ -603,6 +616,210 @@ describeWithDb('Application (intégration)', () => {
       const response = await fetch(`${base}/api/games/${gameId}/cover`, { method: 'PUT', headers: { cookie: alice }, body: new FormData() });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('Saisons et events', () => {
+    const api = (path: string, session: string, init: RequestInit = {}) =>
+      fetch(`${base}/api/${path}`, {
+        ...init,
+        headers: { cookie: session, ...(init.body ? { 'content-type': 'application/json' } : {}) },
+      });
+    const send = (method: string, path: string, session: string, body?: object) =>
+      api(path, session, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const json = async <T>(response: Response | Promise<Response>): Promise<T> => {
+      const res = await response;
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+      return (await res.json()) as T;
+    };
+    const day = 24 * 60 * 60 * 1000;
+    const inDays = (days: number) => new Date(Date.now() + days * day).toISOString();
+
+    async function circuit() {
+      const sessions: Record<string, string> = {};
+      const ids: Record<string, string> = {};
+      for (const [name, discordId] of Object.entries({ admin: ADMIN_ID, alice: ALICE_ID, bruno: BRUNO_ID, chloe: CHLOE_ID, david: DAVID_ID })) {
+        oauthDiscordId = discordId;
+        sessions[name] = (await login()).session as string;
+        ids[name] = (await json<MeDto>(me(sessions[name]))).id;
+      }
+      oauthDiscordId = ALICE_ID;
+      const season = await json<SeasonDto>(
+        send('POST', 'admin/seasons', sessions.admin, { name: 'Saison test', startDate: inDays(-30), endDate: inDays(150) }),
+      );
+      await json(send('POST', `admin/seasons/${season.id}/start`, sessions.admin));
+      const idea = (name: string, teamMode = 'solo') =>
+        json<IdeaDto>(
+          send('POST', 'ideas', sessions.alice, {
+            game: { kind: 'custom', name: 'Trackmania' },
+            priceTier: 'free',
+            name,
+            teamMode,
+            playMode: 'async',
+          }),
+        );
+      const event = (type: string, formatId: string, extra: object = {}) =>
+        json<EventDto>(
+          send('POST', 'admin/events', sessions.admin, {
+            seasonId: season.id,
+            type,
+            format: { kind: 'existing', formatId },
+            announceDate: inDays(-10),
+            registrationEnd: inDays(5),
+            endDate: inDays(10),
+            ...extra,
+          }),
+        );
+      return { sessions, ids, season, idea, event };
+    }
+
+    it('réserve les routes admin à l’admin', async () => {
+      const { sessions, season } = await circuit();
+
+      expect((await fetch(`${base}/api/admin/seasons`, { method: 'POST' })).status).toBe(401);
+      const refused = await send('POST', `admin/seasons/${season.id}/finish`, sessions.alice);
+      expect(refused.status).toBe(403);
+      expect(await refused.json()).toMatchObject({ code: 'forbidden' });
+      expect((await send('POST', 'admin/seasons', sessions.alice, { name: 'X', startDate: inDays(0), endDate: inDays(1) })).status).toBe(403);
+    });
+
+    it('refuse une deuxième saison active et valide la saisie', async () => {
+      const { sessions } = await circuit();
+      const other = await json<SeasonDto>(send('POST', 'admin/seasons', sessions.admin, { name: 'Saison 2', startDate: inDays(150), endDate: inDays(330) }));
+
+      expect(other).toMatchObject({ status: 'upcoming', mainQuota: 3, sideQuota: 2, scoringScale: { 1: 24, 9: 2 } });
+      expect((await send('POST', `admin/seasons/${other.id}/start`, sessions.admin)).status).toBe(409);
+      expect((await send('POST', 'admin/seasons', sessions.admin, { name: 'X', startDate: 'demain', endDate: inDays(1) })).status).toBe(400);
+      const scale = await send('PATCH', `admin/seasons/${other.id}`, sessions.admin, { scoringScale: { 1: 10, 3: 5 } });
+      expect(scale.status).toBe(400);
+      expect(((await json<SeasonDto[]>(api('seasons', sessions.alice))).map((season) => season.name))).toEqual(['Saison 2', 'Saison test']);
+    });
+
+    it('joue une saison de bout en bout : main, side et event par équipe, jusqu’au classement', async () => {
+      const { sessions, ids, season, idea, event } = await circuit();
+      const players = ['alice', 'bruno', 'chloe', 'david'];
+
+      // Main : chacun s'inscrit lui-même, une seule fois.
+      const speedrun = await idea('Speedrun');
+      await json(send('PUT', `ideas/${speedrun.id}/vote`, sessions.bruno));
+      const main = await event('main', speedrun.id, { rules: 'Meilleur chrono sur 3 essais.' });
+      expect(main).toMatchObject({ status: 'registration', coefficient: 1, registrationOpen: true });
+      for (const name of players) await json(send('POST', `events/${main.id}/registrations`, sessions[name]));
+      expect((await send('POST', `events/${main.id}/registrations`, sessions.alice)).status).toBe(409);
+      expect((await send('PUT', `ideas/${speedrun.id}/vote`, sessions.chloe)).status).toBe(409);
+      await json(send('POST', `admin/events/${main.id}/start`, sessions.admin));
+      const closedMain = await json<EventDto>(
+        send('PUT', `admin/events/${main.id}/results`, sessions.admin, {
+          players: players.map((name, index) => ({ playerId: ids[name], place: index + 1 })),
+        }),
+      );
+      expect(closedMain).toMatchObject({ status: 'finished', registrationCount: 4 });
+      const replayed = (await json<IdeaDto[]>(api('ideas', sessions.alice))).find((item) => item.id === speedrun.id);
+      expect(replayed).toMatchObject({ status: 'proposed', votes: 0, playedCount: 1 });
+
+      // Side : format créé avec l'event, au nom de l'hôte, puis validé.
+      const side = await json<EventDto>(
+        send('POST', 'admin/events', sessions.admin, {
+          seasonId: season.id,
+          type: 'side',
+          hostId: ids.bruno,
+          format: { kind: 'new', idea: { game: { kind: 'custom', name: 'Trackmania' }, name: 'Course libre', teamMode: 'solo', playMode: 'live' } },
+          announceDate: inDays(-10),
+          registrationEnd: inDays(1),
+          endDate: inDays(2),
+          liveDate: inDays(2),
+          challongeUrl: 'https://challonge.com/poro-side',
+        }),
+      );
+      expect(side).toMatchObject({ coefficient: 0.5, host: { pseudo: 'Bruno' }, format: { name: 'Course libre' } });
+      for (const name of players) await json(send('PUT', `admin/events/${side.id}/registrations/${ids[name]}`, sessions.admin));
+      await json(
+        send('PUT', `admin/events/${side.id}/results`, sessions.admin, {
+          players: players.map((name, index) => ({ playerId: ids[name], place: 4 - index })),
+        }),
+      );
+      expect(await json<EventDto>(send('PUT', `admin/events/${side.id}/validated`, sessions.admin, { validated: true }))).toMatchObject({
+        validated: true,
+        sideWarnings: [],
+      });
+
+      // Event par équipe : l'admin compose les équipes, chaque membre prend la place de son équipe.
+      const relay = await event('main', (await idea('Relais', 'team')).id);
+      for (const name of players) await json(send('POST', `events/${relay.id}/registrations`, sessions[name]));
+      await json(send('POST', `admin/events/${relay.id}/teams`, sessions.admin, { name: 'Bleus' }));
+      const { teams } = await json<EventDto>(send('POST', `admin/events/${relay.id}/teams`, sessions.admin, { name: 'Rouges' }));
+      const bleus = teams.find((team) => team.name === 'Bleus')?.id as string;
+      const rouges = teams.find((team) => team.name === 'Rouges')?.id as string;
+      for (const [index, name] of players.entries()) {
+        await json(send('PUT', `admin/events/${relay.id}/registrations/${ids[name]}/team`, sessions.admin, { teamId: index < 2 ? bleus : rouges }));
+      }
+      const closedRelay = await json<EventDto>(
+        send('PUT', `admin/events/${relay.id}/results`, sessions.admin, { teams: [{ teamId: bleus, place: 2 }, { teamId: rouges, place: 1 }] }),
+      );
+      expect(closedRelay.results.filter((result) => result.place === 1).map((result) => result.playerId).sort()).toEqual([ids.chloe, ids.david].sort());
+
+      const standings = await json<SeasonStandingsDto>(api('seasons/current/standings', sessions.alice));
+      expect(standings.entries.map((entry) => [entry.rank, entry.player.pseudo, entry.score])).toEqual([
+        [1, 'David', 48],
+        [2, 'Ali la Menace', 48],
+        [3, 'Chloé', 47],
+        [4, 'Bruno', 43],
+      ]);
+      const events = await json<EventDto[]>(api(`seasons/${season.id}/events`, sessions.alice));
+      expect(events.map((item) => item.status)).toEqual(['finished', 'finished', 'finished']);
+    });
+
+    it('ferme les inscriptions après la date limite, sauf pour l’admin', async () => {
+      const { sessions, ids, idea, event } = await circuit();
+      const late = await event('side', (await idea('Speedrun')).id, { announceDate: inDays(-10), registrationEnd: inDays(-1) });
+
+      const refused = await send('POST', `events/${late.id}/registrations`, sessions.alice);
+      expect(refused.status).toBe(409);
+      expect(await refused.json()).toMatchObject({ code: 'closed' });
+      expect((await json<EventDto>(send('PUT', `admin/events/${late.id}/registrations/${ids.alice}`, sessions.admin))).registrationCount).toBe(1);
+      expect((await send('DELETE', `events/${late.id}/registrations`, sessions.alice)).status).toBe(404);
+    });
+
+    it('change le jeu d’un event, puis l’annule en libérant son format', async () => {
+      const { sessions, idea, event } = await circuit();
+      const first = await idea('Speedrun');
+      const second = await idea('Course libre');
+      const main = await event('main', first.id);
+
+      const changed = await json<EventDto>(send('PUT', `admin/events/${main.id}/format`, sessions.admin, { format: { kind: 'existing', formatId: second.id } }));
+      expect(changed.format.id).toBe(second.id);
+      const statuses = async () => Object.fromEntries((await json<IdeaDto[]>(api('ideas', sessions.alice))).map((item) => [item.name, item.status]));
+      expect(await statuses()).toEqual({ Speedrun: 'proposed', 'Course libre': 'selected' });
+
+      expect(await json<EventDto>(send('POST', `admin/events/${main.id}/cancel`, sessions.admin))).toMatchObject({ status: 'cancelled' });
+      expect(await statuses()).toEqual({ Speedrun: 'proposed', 'Course libre': 'proposed' });
+      expect((await send('PUT', `admin/events/${main.id}/results`, sessions.admin, {})).status).toBe(409);
+    });
+
+    it('laisse le vainqueur du dernier main choisir le jeu suivant parmi le top 5', async () => {
+      const { sessions, ids, idea, event } = await circuit();
+      const played = await idea('Speedrun');
+      const next = await idea('Course libre');
+      expect(await json<NextGameDto>(api('game-choice', sessions.alice))).toMatchObject({ status: 'default', pick: { id: played.id } });
+
+      const main = await event('main', played.id);
+      expect((await json<NextGameDto>(api('game-choice', sessions.alice))).status).toBe('scheduled');
+      for (const name of ['alice', 'bruno']) await json(send('POST', `events/${main.id}/registrations`, sessions[name]));
+      await json(send('PUT', `admin/events/${main.id}/results`, sessions.admin, { players: [{ playerId: ids.bruno, place: 1 }, { playerId: ids.alice, place: 2 }] }));
+
+      const open = await json<NextGameDto>(api('game-choice', sessions.bruno));
+      expect(open).toMatchObject({ status: 'open', canChoose: true, choosers: [{ pseudo: 'Bruno' }] });
+      expect(new Date(open.deadline as string).getTime() - new Date(open.lastMain?.finishedAt as string).getTime()).toBe(3 * day);
+      expect((await send('PUT', 'game-choice', sessions.alice, { formatId: next.id })).status).toBe(403);
+
+      const chosen = await json<NextGameDto>(send('PUT', 'game-choice', sessions.bruno, { formatId: next.id }));
+      expect(chosen).toMatchObject({ status: 'chosen', pick: { id: next.id, status: 'selected' } });
+      expect((await send('PUT', 'game-choice', sessions.bruno, { formatId: played.id })).status).toBe(409);
+      expect((await send('PUT', `ideas/${next.id}/vote`, sessions.chloe)).status).toBe(409);
+
+      const nextMain = await event('main', next.id);
+      expect(nextMain.format.id).toBe(next.id);
+      expect((await json<NextGameDto>(api('game-choice', sessions.alice))).status).toBe('scheduled');
     });
   });
 });

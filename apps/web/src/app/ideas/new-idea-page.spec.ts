@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import type { GameSearchResultDto } from '@porolympiques/shared';
-import { idea } from './ideas-page.spec';
+import { idea } from './test-data';
 import { NewIdeaPage, SEARCH_DEBOUNCE_MS } from './new-idea-page';
 
 const witcher: GameSearchResultDto = {

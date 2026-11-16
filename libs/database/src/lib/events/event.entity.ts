@@ -80,6 +80,10 @@ export class EventEntity {
   @Column({ type: 'boolean', default: false })
   validated!: boolean;
 
+  /** Date de clôture (saisie des places) : point de départ du délai de choix du jeu suivant. */
+  @Column({ name: 'finished_at', type: 'timestamptz', nullable: true })
+  finishedAt!: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

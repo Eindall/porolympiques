@@ -263,7 +263,8 @@ export class IdeasService {
   }
 }
 
-function withRights(idea: Idea, viewer: Actor): IdeaView {
+/** Une idée, avec les droits du joueur qui la consulte. */
+export function withRights(idea: Idea, viewer: Actor): IdeaView {
   return { ...idea, canEdit: canEditFormat(viewer, idea), canEditGame: canEditGame(viewer, idea.game) };
 }
 

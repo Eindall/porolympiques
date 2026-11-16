@@ -2,7 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { type ActivatedRouteSnapshot, type RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
-import { authGuard, guestGuard } from './auth.guard';
+import { adminGuard, authGuard, guestGuard } from './auth.guard';
+import { AuthService } from './auth.service';
 
 const ME = { id: 'p-1', pseudo: 'Alice', avatarUrl: 'https://cdn.discordapp.com/embed/avatars/1.png', role: 'player' };
 
@@ -50,5 +51,16 @@ describe('gardes de connexion', () => {
     http.expectOne('/api/me').flush(null, { status: 401, statusText: 'Unauthorized' });
 
     expect(await result).toBe(true);
+  });
+
+  it('réserve les pages admin à l’admin', async () => {
+    const refused = run(adminGuard);
+    http.expectOne('/api/me').flush(ME);
+    expect(String(await refused)).toBe('/');
+
+    TestBed.inject(AuthService).clear();
+    const allowed = run(adminGuard);
+    http.expectOne('/api/me').flush({ ...ME, role: 'admin' });
+    expect(await allowed).toBe(true);
   });
 });
