@@ -5,11 +5,15 @@ import type {
   EventDto,
   EventFormatRequest,
   EventSummaryDto,
+  HallOfFameDto,
+  HomeDto,
   NextGameDto,
   PlayerDto,
+  PlayerRecordDto,
   ResultsRequest,
   SeasonDto,
   SeasonRequest,
+  SeasonStandingsDto,
   UpdateEventRequest,
 } from '@porolympiques/shared';
 import { firstValueFrom } from 'rxjs';
@@ -30,6 +34,19 @@ export class EventsApi {
   }
   register(id: string): Promise<EventDto> {
     return firstValueFrom(this.http.post<EventDto>(`/api/events/${id}/registrations`, null));
+  }
+  home(): Promise<HomeDto> {
+    return this.get('/api/home');
+  }
+  /** Classement d'une saison, ou de la saison en cours (`current`). */
+  standings(seasonId: string): Promise<SeasonStandingsDto> {
+    return this.get(`/api/seasons/${seasonId}/standings`);
+  }
+  player(id: string): Promise<PlayerRecordDto> {
+    return this.get(`/api/players/${id}`);
+  }
+  hallOfFame(): Promise<HallOfFameDto> {
+    return this.get('/api/hall-of-fame');
   }
   players(): Promise<PlayerDto[]> {
     return this.get('/api/players');

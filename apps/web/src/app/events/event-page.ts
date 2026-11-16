@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, type OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { EVENT_STATUS_LABELS, EVENT_TYPE_LABELS, type EventDto, PLAY_MODE_LABELS, TEAM_MODE_LABELS } from '@porolympiques/shared';
+import { EVENT_STATUS_LABELS, type EventDto, PLAY_MODE_LABELS, TEAM_MODE_LABELS } from '@porolympiques/shared';
 import { AuthService } from '../core/auth.service';
+import { EventType } from '../core/event-type';
 import { formatParis } from '../core/paris-time';
 import { errorMessage } from '../ideas/ideas.api';
 import { EventsApi } from './events.api';
 
-/** Détail d'un event, avec l'inscription. Version simple : la page complète arrive avec les pages joueur. */
+/** Détail d'un event : jeu, format, règles, dates, hôte, inscrits, résultats, lien Challonge, et l'inscription. */
 @Component({
   selector: 'app-event-page',
-  imports: [RouterLink],
+  imports: [EventType, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="mx-auto flex max-w-4xl flex-col gap-5 px-4 py-8">
@@ -23,9 +24,9 @@ import { EventsApi } from './events.api';
             <img [src]="ev.game.coverUrl" alt="" class="h-28 w-21 shrink-0 rounded-md object-cover" />
           }
           <div class="flex flex-col gap-1">
-            <p class="text-xs font-semibold uppercase text-slate-500">{{ typeLabels[ev.type] }} · {{ statusLabels[ev.status] }}</p>
+            <p class="flex items-center gap-1.5 text-xs font-semibold uppercase text-slate-500"><app-event-type [type]="ev.type" /> {{ statusLabels[ev.status] }}</p>
             <h1 class="text-2xl font-bold">{{ ev.game.name }} — {{ ev.format.name }}</h1>
-            <p class="text-sm text-slate-600">{{ teamLabels[ev.format.teamMode] }} · {{ playLabels[ev.format.playMode] }}@if (ev.host) { · Hôte : {{ ev.host.pseudo }} }</p>
+            <p class="text-sm text-slate-600">{{ teamLabels[ev.format.teamMode] }} · {{ playLabels[ev.format.playMode] }}@if (ev.host) { · Hôte : <a [routerLink]="['/joueurs', ev.host.id]" class="underline">{{ ev.host.pseudo }}</a> }</p>
             @if (isAdmin()) {
               <a [routerLink]="['/admin/events', ev.id]" class="text-sm text-slate-600 underline">Gérer l’event</a>
             }
@@ -39,10 +40,16 @@ import { EventsApi } from './events.api';
           @if (ev.liveDate) {
             <div><dt class="inline text-slate-500">Live : </dt><dd class="inline">{{ paris(ev.liveDate) }}</dd></div>
           }
+          @if (ev.type === 'side') {
+            <div><dt class="inline text-slate-500">Classement : </dt><dd class="inline">{{ ev.validated ? 'validé, compte s’il réunit au moins 4 classés' : 'pas encore validé par l’admin' }}</dd></div>
+          }
           @if (ev.challongeUrl) {
             <div><dt class="inline text-slate-500">Arbre : </dt><dd class="inline"><a [href]="ev.challongeUrl" target="_blank" rel="noopener" class="underline">Challonge</a></dd></div>
           }
         </dl>
+        @if (ev.format.description) {
+          <p class="text-sm text-slate-700">{{ ev.format.description }}</p>
+        }
         @if (ev.rules) {
           <p class="whitespace-pre-line rounded-xl bg-white p-4 text-sm">{{ ev.rules }}</p>
         }
@@ -65,7 +72,7 @@ import { EventsApi } from './events.api';
                   <span class="w-10 font-semibold">{{ row.place ?? '—' }}</span>
                 }
                 <img [src]="row.avatarUrl" alt="" class="size-6 rounded-full" />
-                {{ row.pseudo }}
+                <a [routerLink]="['/joueurs', row.playerId]" class="hover:underline">{{ row.pseudo }}</a>
                 @if (row.team) {
                   <span class="text-slate-500">· {{ row.team }}</span>
                 }
@@ -101,7 +108,6 @@ export class EventPage implements OnInit {
     return event.status === 'finished' ? rows.sort((a, b) => (a.place ?? Infinity) - (b.place ?? Infinity)) : rows;
   });
 
-  protected readonly typeLabels = EVENT_TYPE_LABELS;
   protected readonly statusLabels = EVENT_STATUS_LABELS;
   protected readonly teamLabels = TEAM_MODE_LABELS;
   protected readonly playLabels = PLAY_MODE_LABELS;

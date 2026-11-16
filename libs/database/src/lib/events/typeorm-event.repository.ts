@@ -82,6 +82,10 @@ export class TypeOrmEventRepository implements EventRepository {
     return this.summaries({ seasonId });
   }
 
+  async listOpen(): Promise<EventSummary[]> {
+    return this.summaries({ open: true });
+  }
+
   async create(event: NewEvent): Promise<Event> {
     return toEvent(await this.events.save(this.events.create({ ...event, status: 'registration', validated: false })));
   }

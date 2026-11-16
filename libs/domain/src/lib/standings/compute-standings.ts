@@ -7,6 +7,7 @@ import type {
   StandingsEvent,
   StandingsInput,
   StandingsPlayer,
+  StandingsResult,
 } from './standings';
 
 /** Un résultat en cours de calcul : points en centièmes, pour additionner et comparer sans arrondi. */
@@ -27,6 +28,23 @@ interface Tally {
 }
 
 /**
+ * Les events qui comptent : terminés, et pour un side, validé avec au moins 4 joueurs classés. Sert au classement
+ * comme aux médailles.
+ */
+export function countedEventIds(events: readonly StandingsEvent[], results: readonly StandingsResult[]): Set<string> {
+  const rankedCount = new Map<string, number>();
+  for (const result of results) {
+    if (result.place !== null) rankedCount.set(result.eventId, (rankedCount.get(result.eventId) ?? 0) + 1);
+  }
+  return new Set(
+    events
+      .filter((event) => event.status === 'finished')
+      .filter((event) => event.type === 'main' || (event.validated && (rankedCount.get(event.id) ?? 0) >= MIN_RANKED_PLAYERS_FOR_SIDE))
+      .map((event) => event.id),
+  );
+}
+
+/**
  * Classement d'une saison, calculé à partir des places (rien n'est stocké) :
  *
  * - seuls les events terminés comptent ;
@@ -43,14 +61,8 @@ export function computeStandings({ season, events, results, players }: Standings
   const finished = new Map(events.filter((event) => event.status === 'finished').map((event) => [event.id, event]));
   const playersById = new Map(players.map((player) => [player.id, player]));
 
-  const rankedCount = new Map<string, number>();
-  for (const result of results) {
-    if (finished.has(result.eventId) && result.place !== null) {
-      rankedCount.set(result.eventId, (rankedCount.get(result.eventId) ?? 0) + 1);
-    }
-  }
-  const counts = (event: StandingsEvent) =>
-    event.type === 'main' || (event.validated && (rankedCount.get(event.id) ?? 0) >= MIN_RANKED_PLAYERS_FOR_SIDE);
+  const countedIds = countedEventIds(events, results);
+  const counts = (event: StandingsEvent) => countedIds.has(event.id);
 
   const byPlayer = new Map<string, Scoring[]>();
   for (const result of results) {

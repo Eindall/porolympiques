@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { EVENT_STATUS_LABELS, EVENT_TYPE_LABELS, type EventDto, type IdeaDto, type PlayerDto } from '@porolympiques/shared';
+import { EVENT_STATUS_LABELS, type EventDto, type IdeaDto, type PlayerDto } from '@porolympiques/shared';
+import { EventType } from '../core/event-type';
 import { formatParis, fromParisInput, toParisInput } from '../core/paris-time';
 import { EventsApi } from '../events/events.api';
 import { IdeasApi, errorMessage } from '../ideas/ideas.api';
@@ -14,7 +15,7 @@ const OPEN = ['announced', 'registration', 'in_progress'];
  */
 @Component({
   selector: 'app-admin-event-page',
-  imports: [FormsModule, RouterLink],
+  imports: [EventType, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
@@ -24,7 +25,7 @@ const OPEN = ['announced', 'registration', 'in_progress'];
       }
       @if (event(); as ev) {
         <header class="flex flex-wrap items-center gap-3">
-          <span class="text-xs font-semibold uppercase text-slate-500">{{ typeLabels[ev.type] }}</span>
+          <app-event-type [type]="ev.type" />
           <h1 class="text-2xl font-bold">{{ ev.game.name }} — {{ ev.format.name }}</h1>
           <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{{ statusLabels[ev.status] }}</span>
           <a [routerLink]="['/events', ev.id]" class="text-sm text-slate-600 underline">Page joueur</a>
@@ -202,7 +203,6 @@ export class AdminEventPage implements OnInit {
   });
 
   protected readonly statusLabels = EVENT_STATUS_LABELS;
-  protected readonly typeLabels = EVENT_TYPE_LABELS;
   protected readonly paris = formatParis;
 
   protected details = { announce: '', registrationEnd: '', end: '', live: '', hostId: '', coefficient: 1, challongeUrl: '', rules: '' };

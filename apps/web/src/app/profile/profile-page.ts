@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 
 /** Profil minimal : pseudo et avatar (repris de Discord), et déconnexion. */
 @Component({
   selector: 'app-profile-page',
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="mx-auto flex max-w-4xl flex-col items-start gap-6 px-4 py-10">
@@ -18,6 +20,7 @@ import { AuthService } from '../core/auth.service';
           </div>
         </div>
         <p class="text-sm text-slate-600">Ton pseudo et ton avatar viennent du serveur Discord et se mettent à jour tout seuls.</p>
+        <a [routerLink]="['/joueurs', me.id]" class="font-medium underline">Voir mes résultats et mes médailles</a>
       }
       <button
         type="button"

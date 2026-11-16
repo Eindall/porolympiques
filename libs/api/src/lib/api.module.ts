@@ -21,6 +21,7 @@ import {
 import { HealthController } from './health/health.controller';
 import { CatalogController, GamesController, IdeasController } from './ideas/ideas.controller';
 import { MeController } from './players/me.controller';
+import { HonoursController } from './seasons/honours.controller';
 import { StandingsController } from './seasons/standings.controller';
 
 /**
@@ -44,6 +45,7 @@ import { StandingsController } from './seasons/standings.controller';
     MeController,
     PlayersController,
     StandingsController,
+    HonoursController,
     SeasonsController,
     EventsController,
     GameChoiceController,

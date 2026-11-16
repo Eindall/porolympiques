@@ -11,6 +11,7 @@ import {
   type PlayerRepository,
   type Season,
   SeasonsService,
+  timelineOf,
   withRights,
 } from '@porolympiques/domain';
 import type { EventDto, EventSummaryDto, NextGameDto, PlayerDto, SeasonDto } from '@porolympiques/shared';
@@ -73,6 +74,7 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
     },
     game: { id: event.game.id, name: event.game.name, coverUrl: coverUrlOf(event.game) },
     registrationCount: event.registrationCount,
+    timeline: timelineOf(event, new Date()),
   };
 }
 

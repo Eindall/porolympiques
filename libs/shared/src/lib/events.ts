@@ -1,5 +1,5 @@
 import type { IdeaDto, PlayModeDto, SuggestIdeaRequest, TeamModeDto } from './ideas';
-import type { EventTypeDto, SeasonStatusDto } from './standings';
+import type { EventTypeDto, SeasonSummaryDto, SeasonStatusDto, StandingsEntryDto } from './standings';
 
 export type EventStatusDto = 'announced' | 'registration' | 'in_progress' | 'finished' | 'cancelled';
 
@@ -66,7 +66,11 @@ export interface EventSummaryDto {
   format: { id: string; name: string; description: string; teamMode: TeamModeDto; playMode: PlayModeDto };
   game: { id: string; name: string; coverUrl: string | null };
   registrationCount: number;
+  /** Place dans la timeline : annonce à venir, annoncé et pas terminé, terminé ou annulé. */
+  timeline: TimelineGroupDto;
 }
+
+export type TimelineGroupDto = 'upcoming' | 'ongoing' | 'past';
 
 export interface EventDto extends EventSummaryDto {
   teams: { id: string; name: string }[];
@@ -125,4 +129,14 @@ export interface EventErrorDto {
   statusCode: number;
   code: EventErrorCodeDto;
   message: string;
+}
+
+/** Réponse de `GET /api/home`. */
+export interface HomeDto {
+  /** Events annoncés, pas encore terminés. */
+  ongoing: EventSummaryDto[];
+  next: EventSummaryDto | null;
+  season: SeasonSummaryDto | null;
+  /** Top 5 de la saison en cours, ex æquo compris. */
+  top: StandingsEntryDto[];
 }

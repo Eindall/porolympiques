@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService } from '../core/auth.service';
+import { EventCard } from './event-card';
 import { EventPage } from './event-page';
 import { GameChoicePage } from './game-choice-page';
 import { eventDto, nextGameDto } from './test-data';
@@ -40,6 +41,18 @@ describe('pages events', () => {
 
   afterEach(() => http?.verify());
 
+  it('montre le type d’un event et grise un event annulé', async () => {
+    const fixture = setup(EventCard, { event: eventDto({ type: 'side', status: 'cancelled', timeline: 'past' }) });
+    const page = await settle(fixture);
+
+    expect(page.querySelector('app-event-type')?.textContent?.trim()).toBe('Side');
+    expect(page.querySelector('a')?.className).toContain('grayscale');
+    fixture.componentRef.setInput('event', eventDto());
+    await settle(fixture);
+    expect(page.querySelector('app-event-type')?.textContent?.trim()).toBe('Main');
+    expect(page.querySelector('a')?.className).not.toContain('grayscale');
+  });
+
   it('affiche un event en heure de Paris et inscrit le joueur', async () => {
     const fixture = setup(EventPage, { id: 'e-1' });
     http.expectOne('/api/events/e-1').flush(eventDto());
@@ -63,7 +76,7 @@ describe('pages events', () => {
     const page = await settle(fixture);
 
     const rows = [...page.querySelectorAll('li')].map((row) => row.textContent?.replace(/\s+/g, ' ').trim());
-    expect(rows).toEqual(['1 Bruno', '— Alice']);
+    expect(rows).toEqual(['1Bruno', '—Alice']);
   });
 
   it('laisse le vainqueur choisir le prochain jeu', async () => {

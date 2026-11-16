@@ -7,6 +7,8 @@ export interface EventRepository {
   findSummary(id: string): Promise<EventSummary | null>;
   /** Les events d'une saison, ordre quelconque. */
   listBySeason(seasonId: string): Promise<EventSummary[]>;
+  /** Les events pas encore terminés ni annulés, toutes saisons confondues, ordre quelconque. */
+  listOpen(): Promise<EventSummary[]>;
   create(event: NewEvent): Promise<Event>;
   update(id: string, changes: EventChanges): Promise<void>;
 

@@ -3,7 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   EVENT_STATUS_LABELS,
-  EVENT_TYPE_LABELS,
   type EventSummaryDto,
   type IdeaDto,
   type NextGameDto,
@@ -11,6 +10,7 @@ import {
   SEASON_STATUS_LABELS,
   type SeasonDto,
 } from '@porolympiques/shared';
+import { EventType } from '../core/event-type';
 import { formatParis, fromParisInput } from '../core/paris-time';
 import { EventsApi } from '../events/events.api';
 import { IdeasApi, errorMessage } from '../ideas/ideas.api';
@@ -31,7 +31,7 @@ export const scaleText = (scale: Record<string, number>) =>
 /** Page admin : saisons, puis les events de la saison choisie. Le détail d'un event a sa propre page. */
 @Component({
   selector: 'app-admin-page',
-  imports: [FormsModule, RouterLink],
+  imports: [EventType, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-8">
@@ -93,7 +93,7 @@ export const scaleText = (scale: Record<string, number>) =>
             @for (event of events(); track event.id) {
               <li>
                 <a [routerLink]="['/admin/events', event.id]" class="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-3 hover:bg-slate-50">
-                  <span class="text-xs font-semibold uppercase text-slate-500">{{ typeLabels[event.type] }}</span>
+                  <app-event-type [type]="event.type" />
                   <span class="font-semibold">{{ event.game.name }} — {{ event.format.name }}</span>
                   <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{{ statusLabels[event.status] }}</span>
                   <span class="text-sm text-slate-500">{{ event.registrationCount }} inscrit(s) · fin {{ paris(event.endDate) }}</span>
@@ -181,7 +181,6 @@ export class AdminPage implements OnInit {
 
   protected readonly seasonLabels = SEASON_STATUS_LABELS;
   protected readonly statusLabels = EVENT_STATUS_LABELS;
-  protected readonly typeLabels = EVENT_TYPE_LABELS;
   protected readonly paris = formatParis;
   protected readonly scaleText = scaleText;
 
