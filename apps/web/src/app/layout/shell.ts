@@ -38,6 +38,7 @@ export class Shell {
     { path: '/classement', label: 'Classement' },
     { path: '/idees', label: 'Boîte à idées' },
     { path: '/palmares', label: 'Palmarès' },
+    { path: '/suggestions', label: 'Suggestions' },
     ...(this.auth.me()?.role === 'admin' ? [{ path: '/admin', label: 'Admin' }] : []),
   ]);
 }

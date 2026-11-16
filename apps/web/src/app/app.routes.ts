@@ -11,6 +11,7 @@ import { NewIdeaPage } from './ideas/new-idea-page';
 import { HallOfFamePage } from './players/hall-of-fame-page';
 import { PlayerPage } from './players/player-page';
 import { StandingsPage } from './standings/standings-page';
+import { SuggestionsPage } from './suggestions/suggestions-page';
 import { Shell } from './layout/shell';
 import { LoginPage } from './login/login-page';
 import { ProfilePage } from './profile/profile-page';
@@ -30,6 +31,7 @@ export const appRoutes: Route[] = [
       { path: 'events/:id', component: EventPage, title: 'Event · Porolympiques' },
       { path: 'classement', component: StandingsPage, title: 'Classement · Porolympiques' },
       { path: 'joueurs/:id', component: PlayerPage, title: 'Joueur · Porolympiques' },
+      { path: 'suggestions', component: SuggestionsPage, title: 'Suggestions · Porolympiques' },
       { path: 'palmares', component: HallOfFamePage, title: 'Palmarès · Porolympiques' },
       { path: 'choix-du-jeu', component: GameChoicePage, title: 'Prochain jeu · Porolympiques' },
       { path: 'profil', component: ProfilePage, title: 'Mon profil · Porolympiques' },

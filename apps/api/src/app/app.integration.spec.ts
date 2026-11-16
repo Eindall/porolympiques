@@ -27,7 +27,9 @@ import type {
   MeDto,
   NextGameDto,
   PlayerRecordDto,
+  RoadmapDto,
   SeasonDto,
+  SuggestionDto,
   SeasonStandingsDto,
 } from '@porolympiques/shared';
 import { DataSource } from 'typeorm';
@@ -887,6 +889,138 @@ describeWithDb('Application (intégration)', () => {
       const nextMain = await event('main', next.id);
       expect(nextMain.format.id).toBe(next.id);
       expect((await json<NextGameDto>(api('game-choice', sessions.alice))).status).toBe('scheduled');
+    });
+  });
+
+  describe('Suggestions d’amélioration', () => {
+    const send = (method: string, path: string, session?: string, body?: object) =>
+      fetch(`${base}/api/${path}`, {
+        method,
+        headers: { ...(session ? { cookie: session } : {}), ...(body ? { 'content-type': 'application/json' } : {}) },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    const json = async <T>(response: Response | Promise<Response>): Promise<T> => {
+      const res = await response;
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+      return (await res.json()) as T;
+    };
+
+    async function players() {
+      const sessions: Record<string, string> = {};
+      for (const [name, discordId] of Object.entries({ admin: ADMIN_ID, alice: ALICE_ID, bruno: BRUNO_ID, chloe: CHLOE_ID })) {
+        oauthDiscordId = discordId;
+        sessions[name] = (await login()).session as string;
+      }
+      oauthDiscordId = ALICE_ID;
+      return sessions;
+    }
+
+    it('sont derrière le mur de connexion', async () => {
+      const id = crypto.randomUUID();
+      for (const [method, path] of [
+        ['GET', 'suggestions'],
+        ['GET', 'suggestions/roadmap'],
+        ['POST', 'suggestions'],
+        ['PUT', `suggestions/${id}/vote`],
+        ['PUT', `suggestions/${id}/status`],
+        ['DELETE', `suggestions/${id}`],
+      ]) {
+        expect((await send(method, path)).status).toBe(401);
+      }
+    });
+
+    it('une suggestion votée par deux comptes passe dans la roadmap, et un joueur la voit', async () => {
+      const { admin, alice, bruno, chloe } = await players();
+      const created = await json<SuggestionDto>(
+        send('POST', 'suggestions', alice, { title: 'Un classement par équipe', description: 'Pour les events à deux.', category: 'format' }),
+      );
+      expect(created).toMatchObject({ status: 'proposed', score: 0, author: { pseudo: 'Ali la Menace' }, canEdit: true, canDelete: true });
+
+      await json(send('PUT', `suggestions/${created.id}/vote`, alice, { value: 1 }));
+      const voted = await json<SuggestionDto>(send('PUT', `suggestions/${created.id}/vote`, bruno, { value: 1 }));
+      expect(voted).toMatchObject({ upvotes: 2, downvotes: 0, score: 2, myVote: 1 });
+
+      expect((await send('PUT', `suggestions/${created.id}/status`, alice, { status: 'planned' })).status).toBe(403);
+      await json(send('PUT', `suggestions/${created.id}/status`, admin, { status: 'planned' }));
+
+      const roadmap = await json<RoadmapDto>(send('GET', 'suggestions/roadmap', chloe));
+      expect(roadmap.planned.map((item) => [item.title, item.score])).toEqual([['Un classement par équipe', 2]]);
+      expect(roadmap.done).toEqual([]);
+      const seen = await json<SuggestionDto>(send('GET', `suggestions/${created.id}`, alice));
+      expect(seen).toMatchObject({ status: 'planned', canEdit: false, canDelete: false, canVote: true });
+      expect((await send('DELETE', `suggestions/${created.id}`, alice)).status).toBe(403);
+    });
+
+    it('change ou retire un vote, fige les votes une fois livrée, et trie par score', async () => {
+      const { admin, alice, bruno, chloe } = await players();
+      const propose = (title: string, category = 'site') => json<SuggestionDto>(send('POST', 'suggestions', alice, { title, category }));
+      const low = await propose('Mode sombre');
+      const high = await propose('Rappels Discord', 'bot');
+
+      await json(send('PUT', `suggestions/${low.id}/vote`, bruno, { value: -1 }));
+      await json(send('PUT', `suggestions/${high.id}/vote`, chloe, { value: -1 }));
+      expect((await json<SuggestionDto>(send('PUT', `suggestions/${high.id}/vote`, chloe, { value: 1 }))).score).toBe(1);
+      expect((await json<SuggestionDto>(send('DELETE', `suggestions/${low.id}/vote`, bruno))).myVote).toBeNull();
+      await json(send('PUT', `suggestions/${low.id}/vote`, chloe, { value: -1 }));
+
+      const titles = async (query = '') => (await json<SuggestionDto[]>(send('GET', `suggestions${query}`, bruno))).map((item) => item.title);
+      expect(await titles()).toEqual(['Rappels Discord', 'Mode sombre']);
+      expect(await titles('?category=site')).toEqual(['Mode sombre']);
+
+      await json(send('PUT', `suggestions/${high.id}/status`, admin, { status: 'planned' }));
+      await json(send('PUT', `suggestions/${high.id}/status`, admin, { status: 'done' }));
+      expect(await titles('?status=done')).toEqual(['Rappels Discord']);
+      expect(await titles('?status=proposed')).toEqual(['Mode sombre']);
+      const frozen = await send('PUT', `suggestions/${high.id}/vote`, bruno, { value: 1 });
+      expect(frozen.status).toBe(409);
+      expect(((await frozen.json()) as { code: string }).code).toBe('votes_frozen');
+      expect((await json<RoadmapDto>(send('GET', 'suggestions/roadmap', bruno))).done.map((item) => item.title)).toEqual(['Rappels Discord']);
+    });
+
+    it('reprend les pistes V2 dans la roadmap et le « plus tard » en propositions, une seule fois, au nom de l’admin', async () => {
+      const { RoadmapSuggestions1794843631066, ROADMAP_SUGGESTIONS } = await import('./database/migrations/1794843631066-RoadmapSuggestions');
+      const migration = new RoadmapSuggestions1794843631066();
+      const runner = dataSource.createQueryRunner();
+      try {
+        await migration.up(runner);
+        expect(Number((await dataSource.query('SELECT count(*) FROM suggestions'))[0].count)).toBe(0);
+
+        const { admin, bruno } = await players();
+        await migration.up(runner);
+        await migration.up(runner);
+
+        const roadmap = await json<RoadmapDto>(send('GET', 'suggestions/roadmap', bruno));
+        expect(roadmap.planned.map((item) => item.title)).toEqual(ROADMAP_SUGGESTIONS.filter((item) => item.status === 'planned').map((item) => item.title));
+        expect(roadmap.planned.every((item) => item.author.pseudo === 'Tong')).toBe(true);
+        const proposed = await json<SuggestionDto[]>(send('GET', 'suggestions?status=proposed', admin));
+        expect(proposed.map((item) => item.title)).toEqual(['Ladder à défis permanent', 'Showmatch contre un autre Discord', 'Badges fantaisie']);
+
+        await migration.down(runner);
+        expect(await json<SuggestionDto[]>(send('GET', 'suggestions', admin))).toEqual([]);
+      } finally {
+        await runner.release();
+      }
+    });
+
+    it('laisse l’auteur modifier et supprimer tant que c’est proposé, l’admin toujours, et valide la saisie', async () => {
+      const { admin, alice, bruno } = await players();
+      const { id } = await json<SuggestionDto>(send('POST', 'suggestions', alice, { title: 'Brouillon', category: 'process' }));
+
+      expect((await send('PATCH', `suggestions/${id}`, bruno, { title: 'Pirate' })).status).toBe(403);
+      expect((await json<SuggestionDto>(send('PATCH', `suggestions/${id}`, alice, { title: 'Version propre' }))).title).toBe('Version propre');
+      expect((await send('POST', 'suggestions', alice, { title: '   ', category: 'site' })).status).toBe(400);
+      expect((await send('POST', 'suggestions', alice, { title: 'Ok', category: 'autre' })).status).toBe(400);
+      expect((await send('PUT', `suggestions/${id}/vote`, alice, { value: 2 })).status).toBe(400);
+      expect((await send('GET', `suggestions/${crypto.randomUUID()}`, alice)).status).toBe(404);
+
+      await json(send('PUT', `suggestions/${id}/status`, admin, { status: 'planned' }));
+      expect((await send('PATCH', `suggestions/${id}`, alice, { title: 'Encore' })).status).toBe(403);
+      expect((await send('DELETE', `suggestions/${id}`, admin)).status).toBe(204);
+
+      const other = await json<SuggestionDto>(send('POST', 'suggestions', alice, { title: 'Autre', category: 'site' }));
+      await json(send('PUT', `suggestions/${other.id}/vote`, bruno, { value: 1 }));
+      expect((await send('DELETE', `suggestions/${other.id}`, alice)).status).toBe(204);
+      expect(await json<SuggestionDto[]>(send('GET', 'suggestions', alice))).toEqual([]);
     });
   });
 });

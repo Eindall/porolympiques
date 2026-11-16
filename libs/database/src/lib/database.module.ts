@@ -11,6 +11,7 @@ import {
   SEASON_REPOSITORY,
   SESSION_STORE,
   STANDINGS_READER,
+  SUGGESTION_REPOSITORY,
 } from '@porolympiques/domain';
 import { TypeOrmCatalogSearchCache } from './catalog/typeorm-catalog-search-cache';
 import { TypeOrmGameRepository } from './catalog/typeorm-game.repository';
@@ -22,6 +23,7 @@ import { TypeOrmPlayerRepository } from './players/typeorm-player.repository';
 import { TypeOrmSeasonRepository } from './seasons/typeorm-season.repository';
 import { TypeOrmSessionStore } from './sessions/typeorm-session.store';
 import { TypeOrmStandingsReader } from './standings/typeorm-standings.reader';
+import { TypeOrmSuggestionRepository } from './suggestions/typeorm-suggestion.repository';
 
 /**
  * Persistance : implémente les ports du domaine avec TypeORM (et le disque pour les images). Globale, pour que l'API et le bot reçoivent
@@ -39,6 +41,7 @@ import { TypeOrmStandingsReader } from './standings/typeorm-standings.reader';
     { provide: IDEA_REPOSITORY, useClass: TypeOrmIdeaRepository },
     { provide: CATALOG_SEARCH_CACHE, useClass: TypeOrmCatalogSearchCache },
     { provide: EVENT_REPOSITORY, useClass: TypeOrmEventRepository },
+    { provide: SUGGESTION_REPOSITORY, useClass: TypeOrmSuggestionRepository },
     {
       // Images envoyées par les joueurs : `UPLOADS_DIR`, ou `data/uploads` (ignoré par git) en dev.
       provide: COVER_STORAGE,
@@ -56,6 +59,7 @@ import { TypeOrmStandingsReader } from './standings/typeorm-standings.reader';
     CATALOG_SEARCH_CACHE,
     COVER_STORAGE,
     EVENT_REPOSITORY,
+    SUGGESTION_REPOSITORY,
   ],
 })
 export class DatabaseModule {}
