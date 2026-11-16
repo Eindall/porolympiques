@@ -11,6 +11,13 @@ import { SESSION_ABSOLUTE_MAX_MS } from './auth/session.constants';
 import { SessionCleanupService } from './auth/session-cleanup.service';
 import { SessionGuard } from './auth/session.guard';
 import { SessionService } from './auth/session.service';
+import {
+  AdminController,
+  EventsController,
+  GameChoiceController,
+  PlayersController,
+  SeasonsController,
+} from './events/events.controller';
 import { HealthController } from './health/health.controller';
 import { CatalogController, GamesController, IdeasController } from './ideas/ideas.controller';
 import { MeController } from './players/me.controller';
@@ -31,7 +38,20 @@ import { StandingsController } from './seasons/standings.controller';
       }),
     }),
   ],
-  controllers: [HealthController, AuthController, MeController, StandingsController, CatalogController, IdeasController, GamesController],
+  controllers: [
+    HealthController,
+    AuthController,
+    MeController,
+    PlayersController,
+    StandingsController,
+    SeasonsController,
+    EventsController,
+    GameChoiceController,
+    AdminController,
+    CatalogController,
+    IdeasController,
+    GamesController,
+  ],
   providers: [
     SessionService,
     SessionCleanupService,

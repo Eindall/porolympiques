@@ -95,6 +95,7 @@ export async function seedFictionalSeason(dataSource: DataSource): Promise<Seede
           announceDate: new Date(endDate.getTime() - 30 * DAY_MS),
           registrationEnd: new Date(endDate.getTime() - 21 * DAY_MS),
           endDate,
+          finishedAt: fixture.status === 'finished' ? endDate : null,
           validated: fixture.validated,
         }),
       );

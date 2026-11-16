@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   CATALOG_SEARCH_CACHE,
   COVER_STORAGE,
+  EVENT_REPOSITORY,
   GAME_REPOSITORY,
   IDEA_REPOSITORY,
   PLAYER_REPOSITORY,
@@ -15,6 +16,7 @@ import { TypeOrmCatalogSearchCache } from './catalog/typeorm-catalog-search-cach
 import { TypeOrmGameRepository } from './catalog/typeorm-game.repository';
 import { TypeOrmIdeaRepository } from './catalog/typeorm-idea.repository';
 import { ENTITIES } from './entities';
+import { TypeOrmEventRepository } from './events/typeorm-event.repository';
 import { DiskCoverStorage } from './files/disk-cover-storage';
 import { TypeOrmPlayerRepository } from './players/typeorm-player.repository';
 import { TypeOrmSeasonRepository } from './seasons/typeorm-season.repository';
@@ -36,6 +38,7 @@ import { TypeOrmStandingsReader } from './standings/typeorm-standings.reader';
     { provide: GAME_REPOSITORY, useClass: TypeOrmGameRepository },
     { provide: IDEA_REPOSITORY, useClass: TypeOrmIdeaRepository },
     { provide: CATALOG_SEARCH_CACHE, useClass: TypeOrmCatalogSearchCache },
+    { provide: EVENT_REPOSITORY, useClass: TypeOrmEventRepository },
     {
       // Images envoyées par les joueurs : `UPLOADS_DIR`, ou `data/uploads` (ignoré par git) en dev.
       provide: COVER_STORAGE,
@@ -52,6 +55,7 @@ import { TypeOrmStandingsReader } from './standings/typeorm-standings.reader';
     IDEA_REPOSITORY,
     CATALOG_SEARCH_CACHE,
     COVER_STORAGE,
+    EVENT_REPOSITORY,
   ],
 })
 export class DatabaseModule {}

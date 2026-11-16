@@ -16,7 +16,7 @@ const season = (overrides: Partial<Season> = {}): Season => ({
 });
 
 function setup(seasons: Season[]) {
-  const repository: SeasonRepository = {
+  const repository: Pick<SeasonRepository, 'findById' | 'findActive'> = {
     findById: async (id) => seasons.find((s) => s.id === id) ?? null,
     findActive: async () => seasons.find((s) => s.status === 'active') ?? null,
   };

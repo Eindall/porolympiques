@@ -13,7 +13,11 @@ import { AuthService } from '../core/auth.service';
         <nav class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <div class="flex items-center gap-5">
             <a routerLink="/" class="text-lg font-bold tracking-tight">Porolympiques</a>
+            <a routerLink="/events" routerLinkActive="text-slate-900" class="text-sm font-medium text-slate-600 hover:text-slate-900">Events</a>
             <a routerLink="/idees" routerLinkActive="text-slate-900" class="text-sm font-medium text-slate-600 hover:text-slate-900">Boîte à idées</a>
+            @if (auth.me()?.role === 'admin') {
+              <a routerLink="/admin" routerLinkActive="text-slate-900" class="text-sm font-medium text-slate-600 hover:text-slate-900">Admin</a>
+            }
           </div>
           @if (auth.me(); as me) {
             <a routerLink="/profil" class="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-100">

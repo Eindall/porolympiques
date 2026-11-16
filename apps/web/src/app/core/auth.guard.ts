@@ -19,3 +19,11 @@ export const guestGuard: CanActivateFn = async () => {
   const me = auth.me() ?? (await auth.load());
   return me ? router.createUrlTree(['/']) : true;
 };
+
+/** Pages admin : réservées au rôle admin (l'API revérifie chaque action). */
+export const adminGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const me = auth.me() ?? (await auth.load());
+  return me?.role === 'admin' ? true : router.createUrlTree(['/']);
+};

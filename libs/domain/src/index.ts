@@ -30,3 +30,8 @@ export * from './lib/ideas/idea.repository';
 export * from './lib/ideas/ideas.service';
 export * from './lib/catalog/cover';
 export * from './lib/catalog/cover-storage';
+export * from './lib/seasons/seasons.service';
+export * from './lib/events/event-error';
+export * from './lib/events/event.repository';
+export * from './lib/events/events.service';
+export * from './lib/events/game-choice.service';

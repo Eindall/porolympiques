@@ -12,7 +12,7 @@ export interface SeasonStandings {
 /** Classement d'une saison, recalculé à chaque demande à partir des places. */
 export class StandingsService {
   constructor(
-    private readonly seasons: SeasonRepository,
+    private readonly seasons: Pick<SeasonRepository, 'findById' | 'findActive'>,
     private readonly reader: StandingsReader,
   ) {}
 

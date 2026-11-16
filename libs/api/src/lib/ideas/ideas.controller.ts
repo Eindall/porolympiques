@@ -22,6 +22,7 @@ import {
   CatalogService,
   type Game,
   type GameChoice,
+  type IdeaInput,
   type IdeaView,
   IdeasService,
   MAX_COVER_BYTES,
@@ -77,6 +78,18 @@ export function toIdeaDto(idea: IdeaView): IdeaDto {
   };
 }
 
+/** Corps d'une suggestion → saisie du domaine. */
+export function toIdeaInput(body: SuggestIdeaBody): IdeaInput {
+  return {
+    game: toGameChoice(body.game),
+    priceTier: body.priceTier ?? null,
+    name: body.name,
+    description: body.description ?? '',
+    teamMode: body.teamMode,
+    playMode: body.playMode,
+  };
+}
+
 function toGameChoice(body: GameChoiceBody): GameChoice {
   switch (body.kind) {
     case 'existing':
@@ -118,15 +131,7 @@ export class IdeasController {
 
   @Post()
   async suggest(@CurrentPlayer() player: Player, @Body() body: SuggestIdeaBody): Promise<IdeaDto> {
-    const idea = await this.ideas.suggest(player, {
-      game: toGameChoice(body.game),
-      priceTier: body.priceTier ?? null,
-      name: body.name,
-      description: body.description ?? '',
-      teamMode: body.teamMode,
-      playMode: body.playMode,
-    });
-    return toIdeaDto(idea);
+    return toIdeaDto(await this.ideas.suggest(player, toIdeaInput(body)));
   }
 
   @Put(':id/vote')
