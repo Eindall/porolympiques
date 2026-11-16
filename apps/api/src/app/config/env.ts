@@ -34,6 +34,10 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     throw new Error('DISCORD_GUILD_ID doit être un identifiant Discord (nombre de 17 à 20 chiffres).');
   }
   parseAdminIds(String(config['DISCORD_ADMIN_IDS']));
+  const channel = config['DISCORD_ANNOUNCEMENTS_CHANNEL_ID'];
+  if (channel && !SNOWFLAKE.test(String(channel))) {
+    throw new Error('DISCORD_ANNOUNCEMENTS_CHANNEL_ID doit être un identifiant de salon Discord (nombre de 17 à 20 chiffres), ou rester vide.');
+  }
   return config;
 }
 

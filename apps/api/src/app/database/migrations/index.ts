@@ -5,6 +5,7 @@ import { GameSearchName1794595906591 } from './1794595906591-GameSearchName';
 import { GameCover1794597246854 } from './1794597246854-GameCover';
 import { EventFinishedAt1794826505682 } from './1794826505682-EventFinishedAt';
 import { RoadmapSuggestions1794843631066 } from './1794843631066-RoadmapSuggestions';
+import { EventMessages1794844692285 } from './1794844692285-EventMessages';
 
 /** Liste explicite des migrations, dans l'ordre. À compléter à chaque `migration:generate`. */
 export const MIGRATIONS: NonNullable<DataSourceOptions['migrations']> = [
@@ -14,4 +15,5 @@ export const MIGRATIONS: NonNullable<DataSourceOptions['migrations']> = [
   GameCover1794597246854,
   EventFinishedAt1794826505682,
   RoadmapSuggestions1794843631066,
+  EventMessages1794844692285,
 ];

@@ -84,6 +84,14 @@ export class EventEntity {
   @Column({ name: 'finished_at', type: 'timestamptz', nullable: true })
   finishedAt!: Date | null;
 
+  /** Message d'annonce posté par le bot (identifiant Discord). */
+  @Column({ name: 'announcement_message_id', type: 'varchar', length: 32, nullable: true })
+  announcementMessageId!: string | null;
+
+  /** Message des résultats posté par le bot à la clôture. */
+  @Column({ name: 'results_message_id', type: 'varchar', length: 32, nullable: true })
+  resultsMessageId!: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

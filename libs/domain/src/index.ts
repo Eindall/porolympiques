@@ -40,3 +40,5 @@ export * from './lib/events/events.service';
 export * from './lib/events/game-choice.service';
 export * from './lib/events/timeline';
 export * from './lib/standings/honours';
+export * from './lib/announcements/event-announcer';
+export * from './lib/announcements/announcements.service';

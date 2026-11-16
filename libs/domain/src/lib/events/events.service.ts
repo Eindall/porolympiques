@@ -1,3 +1,4 @@
+import { type EventObserver, NO_EVENT_OBSERVER } from '../announcements/event-announcer';
 import type { IdeaInput, IdeasService } from '../ideas/ideas.service';
 import type { IdeaRepository } from '../ideas/idea.repository';
 import { cleanName } from '../catalog/normalize';
@@ -120,7 +121,15 @@ export class EventsService {
     private readonly ideas: IdeaRepository,
     private readonly ideasService: IdeasService,
     private readonly now: () => Date = () => new Date(),
+    /** Prévenu après chaque changement (messages du bot). Sans attente : Discord ne ralentit pas le site. */
+    private readonly observer: EventObserver = NO_EVENT_OBSERVER,
   ) {}
+
+  /** Les events annoncés, pas encore terminés ni annulés, du plus proche au plus lointain (fin de l'event). */
+  async listAnnounced(): Promise<EventSummary[]> {
+    const now = this.now().getTime();
+    return (await this.events.listOpen()).filter((event) => event.announceDate.getTime() <= now).sort((a, b) => a.endDate.getTime() - b.endDate.getTime() || a.createdAt.getTime() - b.createdAt.getTime());
+  }
 
   async listBySeason(seasonId: string): Promise<EventSummary[]> {
     return (await this.events.listBySeason(seasonId)).sort(
@@ -166,7 +175,7 @@ export class EventsService {
     const formatId = await this.resolveFormat(input.format, hostId ?? actor.id, null);
     const event = await this.events.create({ ...details, seasonId: season.id, type: input.type, formatId });
     await this.events.setFormatStatus(formatId, 'selected');
-    return this.detail(actor, event.id);
+    return this.changed(actor, event.id);
   }
 
   /** Règles, dates, hôte, lien Challonge, coefficient. Possible même après la clôture : le classement se recalcule. */
@@ -178,7 +187,7 @@ export class EventsService {
     checkDetails({ ...event, ...defined });
     if (defined.rules !== undefined) defined.rules = defined.rules.trim();
     await this.events.update(id, defined);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   /** Change le jeu d'un event pas encore joué : l'ancien format redevient proposé (votes dégelés), le nouveau est retenu. */
@@ -190,7 +199,7 @@ export class EventsService {
     await this.events.update(id, { formatId });
     await this.events.setFormatStatus(formatId, 'selected');
     await this.releaseFormat(event.formatId);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   /** Fin des inscriptions, début des matchs. */
@@ -199,7 +208,7 @@ export class EventsService {
     const event = await this.openEvent(id);
     if (event.status === 'in_progress') return this.detail(actor, id);
     await this.events.update(id, { status: 'in_progress' });
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   /** Annulation : le format redevient proposé et garde ses votes. */
@@ -208,7 +217,7 @@ export class EventsService {
     const event = await this.openEvent(id);
     await this.events.update(id, { status: 'cancelled' });
     await this.releaseFormat(event.formatId);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   async register(player: Actor, id: string): Promise<EventView> {
@@ -216,7 +225,7 @@ export class EventsService {
     if (!registrationOpen(event, this.now())) throw new EventError('closed', 'Les inscriptions à cet event sont fermées.');
     await this.assertPlayer(player.id);
     if (!(await this.events.addRegistration(id, player.id))) throw new EventError('conflict', 'Tu es déjà inscrit à cet event.');
-    return this.detail(player, id);
+    return this.changed(player, id);
   }
 
   /** L'admin inscrit un joueur, même après la fin des inscriptions, tant que l'event n'est pas clos. */
@@ -225,14 +234,14 @@ export class EventsService {
     await this.openEvent(id);
     await this.assertPlayer(playerId);
     if (!(await this.events.addRegistration(id, playerId))) throw new EventError('conflict', 'Ce joueur est déjà inscrit.');
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   async removeRegistration(actor: Actor, id: string, playerId: string): Promise<EventView> {
     assertAdmin(actor);
     await this.openEvent(id);
     if (!(await this.events.removeRegistration(id, playerId))) throw new EventError('not_found', 'Ce joueur n’est pas inscrit.');
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   async createTeam(actor: Actor, id: string, name: string): Promise<EventView> {
@@ -240,7 +249,7 @@ export class EventsService {
     const event = await this.openTeamEvent(id);
     const teamName = await this.teamName(event.id, name, null);
     await this.events.createTeam(event.id, teamName);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   async renameTeam(actor: Actor, id: string, teamId: string, name: string): Promise<EventView> {
@@ -248,7 +257,7 @@ export class EventsService {
     await this.openTeamEvent(id);
     await this.teamOf(id, teamId);
     await this.events.renameTeam(teamId, await this.teamName(id, name, teamId));
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   async deleteTeam(actor: Actor, id: string, teamId: string): Promise<EventView> {
@@ -256,7 +265,7 @@ export class EventsService {
     await this.openTeamEvent(id);
     await this.teamOf(id, teamId);
     await this.events.deleteTeam(teamId);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   /** Range un inscrit dans une équipe, ou l'en sort (`null`). */
@@ -269,7 +278,7 @@ export class EventsService {
       throw new EventError('not_found', 'Ce joueur n’est pas inscrit.');
     }
     await this.events.setTeam(id, playerId, teamId);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   /**
@@ -285,7 +294,7 @@ export class EventsService {
     const results = resultsFor(summary.format.teamMode === 'team', registrations, teams, input);
     const close = summary.status === 'finished' ? null : { finishedAt: this.now(), formatId: summary.formatId };
     await this.events.saveResults(id, results, close);
-    return this.detail(actor, id);
+    return this.changed(actor, id);
   }
 
   /** Validation d'un side par l'admin. Les avertissements (`sideWarnings`) n'empêchent pas de valider. */
@@ -294,7 +303,13 @@ export class EventsService {
     const event = await this.find(id);
     if (event.type !== 'side') throw new EventError('invalid', 'Seul un side event se valide.');
     await this.events.update(id, { validated });
-    return this.detail(actor, id);
+    return this.changed(actor, id);
+  }
+
+  /** Prévient l'observateur sans l'attendre, puis renvoie l'event à jour. */
+  private changed(viewer: Actor, id: string): Promise<EventView> {
+    void this.observer.eventChanged(id);
+    return this.detail(viewer, id);
   }
 
   private async resolveFormat(choice: EventFormatChoice, suggestedById: string, eventId: string | null): Promise<string> {
