@@ -180,7 +180,7 @@ docker compose -f docker-compose.dev.yml exec db createdb -U porolympiques porol
 
 Trois conteneurs : `db` (PostgreSQL dédié, volume persistant), `api` (NestJS et bot, avec un volume pour les images envoyées) et `web` (nginx, qui sert le front et renvoie `/api` vers l'API). Seul `web` rejoint le réseau Docker de Caddy, sous l'alias `porolympiques-web`.
 
-La route de santé `GET /api/health` est publique (avec le flux de connexion). Elle vérifie aussi la base, et sert au healthcheck Docker comme au script de déploiement. Le bot démarre avec l'API ; s'il n'arrive pas à se connecter à Discord, l'API tourne quand même, mais les connexions au site échouent (`/login?error=discord`).
+La route de santé `GET /api/health` est publique (avec le flux de connexion). Elle échoue si la base ne répond pas, et renvoie `{"status":"ok","discord":"up"}` (ou `"down"` si le bot est déconnecté, toujours en 200). Elle sert au healthcheck Docker, au script de déploiement et à la supervision. Le bot démarre avec l'API ; s'il n'arrive pas à se connecter à Discord, l'API tourne quand même, mais les connexions au site échouent (`/login?error=discord`).
 
 ### Déploiement continu
 
@@ -231,3 +231,30 @@ porolympiques.tongcho7.com {
 	reverse_proxy porolympiques-web:80
 }
 ```
+
+### Supervision
+
+Deux sondes dans Uptime Kuma (ou équivalent), toutes les minutes :
+
+| Sonde | Type | Cible | Alerte quand |
+| --- | --- | --- | --- |
+| Site | HTTP(s) | `https://porolympiques.tongcho7.com/api/health` | autre chose qu'un 200 : site ou base en panne |
+| Bot | HTTP(s) - Mot-clé | même URL, mot-clé `"discord":"up"` | le bot est déconnecté : plus de connexion au site, ni d'annonces |
+
+### Sauvegardes
+
+Le script de déploiement garde un dump avant chaque mise à jour. Pour les sauvegardes quotidiennes (restic), ajoute au script du VPS, à côté des autres bases :
+
+```bash
+cd "$HOME/stacks/porolympiques"
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$HOME/data/dumps/porolympiques.sql.gz"
+```
+
+Les images envoyées sont dans `UPLOADS_DATA_DIR` (à placer sous `~/data` pour qu'elles soient sauvegardées), sinon dans le volume Docker `porolympiques-uploads`. Si `DB_DATA_DIR` est sous `~/data`, exclus-le de restic : le dump suffit.
+
+### Lancement de la saison 1
+
+1. Vider les données de test : `scripts/purge-test-data.sh` sur le VPS, depuis `~/stacks/porolympiques`. Il affiche ce qui sera vidé, sauvegarde la base dans `~/data/dumps/porolympiques`, puis demande de taper `PURGER`. Il garde les joueurs, les suggestions et leurs votes ; il vide saisons, events, jeux, formats, votes de la boîte à idées, cache du catalogue, sessions et images envoyées. Les messages déjà postés sur Discord sont à supprimer à la main.
+2. Préremplir la boîte à idées (site ou `/add-game`), créer la saison 1 sur `/admin`.
+3. Poster les textes de [`launch/discord.md`](launch/discord.md), puis créer le premier main : le bot l'annonce.
+
