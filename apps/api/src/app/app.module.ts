@@ -15,6 +15,7 @@ import { EventsModule } from './events.module';
 import { IdeasModule } from './ideas.module';
 import { PlayersModule } from './players.module';
 import { StandingsModule } from './standings.module';
+import { SuggestionsModule } from './suggestions.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { StandingsModule } from './standings.module';
     StandingsModule,
     IdeasModule,
     EventsModule,
+    SuggestionsModule,
     BotModule,
     ApiModule,
   ],

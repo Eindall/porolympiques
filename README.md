@@ -77,6 +77,19 @@ Tout est recalculé à partir des places (`libs/domain/src/lib/standings/honours
 
 Routes joueur des events : `GET /api/seasons`, `GET /api/seasons/:id/events`, `GET /api/events/:id`, `POST /api/events/:id/registrations`, `GET` et `PUT /api/game-choice`, `GET /api/players`. Routes admin sous `/api/admin` : saisons (`POST`, `PATCH`, `start`, `finish`) et events (`POST`, `PATCH`, `format`, `start`, `cancel`, inscrits, équipes, `results`, `validated`).
 
+## Suggestions d'amélioration
+
+Page `/suggestions` : la roadmap en haut (prévu par score, livré du plus récent au plus ancien), puis la liste par score avec filtres par catégorie et par statut (proposées par défaut).
+
+- **Proposer** : titre (150 caractères), description, catégorie (format, site, bot, organisation).
+- **Voter** pour ou contre, changer ou retirer son vote. Score = pour moins contre, calculé à la demande. Votes figés une fois la suggestion livrée.
+- **Modifier et supprimer** : l'auteur tant que la suggestion est proposée, l'admin toujours.
+- **Roadmap** (admin) : ajouter, retirer, marquer livrée, remettre dans la roadmap.
+
+La migration `RoadmapSuggestions` reprend les pistes des specs au nom de l'admin : la V2 dans la roadmap, le « plus tard » en propositions. Elle n'insère rien s'il n'y a pas encore d'admin en base.
+
+Règles dans `libs/domain/src/lib/suggestions/suggestions.service.ts`. Routes : `GET` et `POST /api/suggestions`, `GET /api/suggestions/roadmap`, `GET`, `PATCH` et `DELETE /api/suggestions/:id`, `PUT` et `DELETE /api/suggestions/:id/vote`, `PUT /api/suggestions/:id/status`.
+
 ## Développement
 
 Prérequis : Node.js 22 ou plus, npm, Docker avec Compose.

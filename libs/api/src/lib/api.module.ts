@@ -23,6 +23,7 @@ import { CatalogController, GamesController, IdeasController } from './ideas/ide
 import { MeController } from './players/me.controller';
 import { HonoursController } from './seasons/honours.controller';
 import { StandingsController } from './seasons/standings.controller';
+import { SuggestionsController } from './suggestions/suggestions.controller';
 
 /**
  * Routes HTTP de l'API. Les contrôleurs restent fins : les règles métier vivent dans `@porolympiques/domain`.
@@ -53,6 +54,7 @@ import { StandingsController } from './seasons/standings.controller';
     CatalogController,
     IdeasController,
     GamesController,
+    SuggestionsController,
   ],
   providers: [
     SessionService,
