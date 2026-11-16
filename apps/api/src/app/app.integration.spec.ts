@@ -54,6 +54,10 @@ class FakeGuildDirectory implements GuildDirectory {
   members = new Map<string, GuildMember>();
   unavailable = false;
 
+  isConnected() {
+    return !this.unavailable;
+  }
+
   async findMember(discordId: string): Promise<GuildMember | null> {
     if (this.unavailable) throw new Error('bot pas encore connecté');
     return this.members.get(discordId) ?? null;
@@ -205,7 +209,12 @@ describeWithDb('Application (intégration)', () => {
     const response = await fetch(`${base}/api/health`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: 'ok' });
+    expect(await response.json()).toEqual({ status: 'ok', discord: 'up' });
+
+    directory.unavailable = true;
+    const down = await fetch(`${base}/api/health`);
+    expect(down.status).toBe(200);
+    expect(await down.json()).toEqual({ status: 'ok', discord: 'down' });
   });
 
   it('refuse les routes protégées sans session', async () => {

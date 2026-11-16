@@ -17,6 +17,10 @@ export class DiscordGuildDirectory implements GuildDirectory {
     this.guildId = config.getOrThrow<string>('DISCORD_GUILD_ID');
   }
 
+  isConnected(): boolean {
+    return this.client.isReady();
+  }
+
   async findMember(discordId: string): Promise<GuildMember | null> {
     const guild = await this.client.guilds.fetch(this.guildId);
     try {
